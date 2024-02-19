@@ -3,7 +3,7 @@ import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 
-import glb from './Soldier.glb'
+// import glb from './Soldier.glb'
 
 let gScene = null // 场景
 export default {
@@ -15,7 +15,8 @@ export default {
       mesh: null, // 网格模型对象Mesh
       renderer: null, // 渲染器对象
       controls: null, //
-      currentAnim: null,
+
+      idle: null,
       neck: null,
       waist: null,
       possibleAnims: null,
@@ -28,15 +29,15 @@ export default {
   },
   mounted() {
     this.init()
-    // document.addEventListener('mousemove', e => {
-    //   const mousecoords = this.getMousePos(e)
-    //   if (this.neck && this.waist) {
-    //     this.moveJoint(mousecoords, this.neck, 50)
-    //     this.moveJoint(mousecoords, this.waist, 30)
-    //   }
-    // })
-    // window.addEventListener('click', e => this.raycast(e))
-    // window.addEventListener('touchend', e => this.raycast(e, true))
+    document.addEventListener('mousemove', e => {
+      const mousecoords = this.getMousePos(e)
+      if (this.neck && this.waist) {
+        this.moveJoint(mousecoords, this.neck, 50)
+        this.moveJoint(mousecoords, this.waist, 30)
+      }
+    })
+    window.addEventListener('click', e => this.raycast(e))
+    window.addEventListener('touchend', e => this.raycast(e, true))
   },
   methods: {
     /** 创建场景 */
@@ -72,6 +73,7 @@ export default {
       })
       renderer.shadowMap.enabled = true // 投射阴影
       renderer.setPixelRatio(window.devicePixelRatio)
+      console.log('renderer.domElement', renderer.domElement)
       // document.body.appendChild(renderer.domElement)
       this.renderer = renderer
       const controls = new OrbitControls(this.camera, renderer.domElement)
@@ -105,8 +107,8 @@ export default {
     /** 创建网格模型对象 */
     initMesh() {
       const loader = new GLTFLoader()
-      const neck = null
-      const waist = null
+      let neck = null
+      let waist = null
 
       // 加载纹理贴图
       const texture = new THREE.TextureLoader().load(
@@ -122,10 +124,10 @@ export default {
       })
 
       loader.load(
-        // 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb',
-        glb,
+        'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb',
+        // glb,
         gltf => {
-          console.log('mwc-gltf', gltf)
+          console.log('gltf', gltf)
           const model = gltf.scene
 
           model.traverse(o => {
@@ -135,20 +137,17 @@ export default {
               o.receiveShadow = true
               o.material = material
             }
-            // console.log('mwc-o', o)
-            // if (o.isBone && o.name === 'mixamorigNeck') {
-            //   neck = o
-            // }
-            // if (o.isBone && o.name === 'mixamorigSpine') {
-            //   waist = o
-            // }
+            if (o.isBone && o.name === 'mixamorigNeck') {
+              neck = o
+            }
+            if (o.isBone && o.name === 'mixamorigSpine') {
+              waist = o
+            }
           })
 
           // 放大 7 倍
           model.scale.set(10, 10, 10)
           model.position.y = -11
-          // 旋转过来
-          model.rotation.y = 3.1
 
           gScene.add(model)
 
@@ -159,42 +158,39 @@ export default {
           const mixer = new THREE.AnimationMixer(model)
 
           // 处理其他动画
-          const clips = fileAnimations
-          // const defaultAnimations = fileAnimations[0]
+          const clips = fileAnimations.filter(val => val.name !== 'idle')
 
           // 遍历动画列表并生成操作对象存储起来
           const possibleAnims = clips.map(val => {
             let clip = THREE.AnimationClip.findByName(clips, val.name)
 
-            // clip.tracks.splice(3, 3)
-            // clip.tracks.splice(9, 3)
+            clip.tracks.splice(3, 3)
+            clip.tracks.splice(9, 3)
 
             clip = mixer.clipAction(clip)
             return clip
           })
 
           // 从动画列表中找到名字为‘空闲’的动画
-          // const idleAnim = THREE.AnimationClip.findByName(
-          //   fileAnimations,
-          //   defaultAnimations,
-          // )
-          // console.log('mwc-defaultAnimations', idleAnim)
+          const idleAnim = THREE.AnimationClip.findByName(
+            fileAnimations,
+            'idle',
+          )
 
-          // idleAnim.tracks.splice(3, 3)
-          // idleAnim.tracks.splice(9, 3)
+          idleAnim.tracks.splice(3, 3)
+          idleAnim.tracks.splice(9, 3)
 
           // 得到动画操作对象
-          // const idle = mixer.clipAction(idleAnim)
-          this.currentAnim = possibleAnims[1]
-          this.currentAnim.play() // 播放空闲动画
+          const idle = mixer.clipAction(idleAnim)
+          this.idle = idle
+          idle.play() // 播放空闲动画
 
           this.neck = neck
           this.waist = waist
           this.possibleAnims = possibleAnims
           this.mixer = mixer
-          window.vue = this
 
-          console.log('mwc-possibleAnims', this.possibleAnims)
+          console.log(this.possibleAnims)
         },
         undefined, // We don't need this function
         error => {
@@ -229,13 +225,11 @@ export default {
     initFloor() {
       const floorGeometry = new THREE.PlaneGeometry(5000, 5000, 1, 1)
       const floorMaterial = new THREE.MeshPhongMaterial({
-        color: 'red',
+        color: 0x0000ff,
         shininess: 0,
       })
 
       const floor = new THREE.Mesh(floorGeometry, floorMaterial)
-      // floor.rotation.x = -Math.PI / 2
-      // floor.receiveShadow = true
       floor.rotation.x = -0.5 * Math.PI
       floor.receiveShadow = true
       floor.position.y = -11
@@ -382,7 +376,12 @@ export default {
 
     playOnClick() {
       const anim = Math.floor(Math.random() * this.possibleAnims.length) + 0
-      this.playModifierAnimation(this.possibleAnims[anim])
+      this.playModifierAnimation(
+        this.idle,
+        0.25,
+        this.possibleAnims[anim],
+        0.25,
+      )
     },
 
     /**
@@ -392,30 +391,31 @@ export default {
      * @params to 下一个要执行的动画
      * @params tSpeed 下一个动画执行完成后回到当前动画的时间
      */
-    playModifierAnimation(to) {
-      if (to === this.currentAnim) return
-      this.currentAnim.stop()
-      this.currentAnim = to
-      to.play()
-      // to.setLoop(THREE.LoopRepeat) // 设置只执行一次
-      // to.reset() // 重置动画，保证动画从第一针开始播放
-      // from.crossFadeTo(to, fSpeed, true) // 进行动画过度
-      // to.play() // 执行动画
+    playModifierAnimation(from, fSpeed, to, tSpeed) {
+      to.setLoop(THREE.LoopOnce) // 设置只执行一次
+      to.reset() // 重置动画，保证动画从第一针开始播放
+      from.crossFadeTo(to, fSpeed, true) // 进行动画过度
+      to.play() // 执行动画
 
       // 动画执行完成之后回到当前动画（原动画form）
-      // setTimeout(
-      //   () => {
-      //     to.crossFadeTo(from, tSpeed, true) // 进行动画过度
-      //     from.enabled = true // 当enabled被重新置为true, 动画将从当前时间（time）继续
-      //     from.play() // 播放原动画
-      //     this.currentlyAnimating = false
-      //   },
-      //   to._clip.duration * 1000 - (tSpeed + fSpeed) * 1000,
-      // )
+      setTimeout(
+        () => {
+          to.crossFadeTo(from, tSpeed, true) // 进行动画过度
+          from.enabled = true // 当enabled被重新置为true, 动画将从当前时间（time）继续
+          from.play() // 播放原动画
+          this.currentlyAnimating = false
+        },
+        to._clip.duration * 1000 - (tSpeed + fSpeed) * 1000,
+      )
     },
 
     palyAnimation(index) {
-      this.playModifierAnimation(this.possibleAnims[index])
+      this.playModifierAnimation(
+        this.idle,
+        0.25,
+        this.possibleAnims[index],
+        0.25,
+      )
     },
   },
 }
