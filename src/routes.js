@@ -5,23 +5,23 @@ import { HOME_PAGE_NAME } from './constant'
 
 const routes = [
   {
-    path: '/404',
-    component: NotFound,
-    name: '404',
+    path: '/3d',
+    component: poker404,
+    name: '3d',
     hidden: true,
   },
-  {
-    path: '/',
-    redirect: { name: HOME_PAGE_NAME },
-    // component: Layout,
-    children: [
-      {
-        path: '/',
-        component: poker404,
-        name: HOME_PAGE_NAME,
-      },
-    ],
-  },
+  // {
+  //   path: '/',
+  //   redirect: { name: HOME_PAGE_NAME },
+  //   // component: Layout,
+  //   children: [
+  //     {
+  //       path: '/3d',
+  //       component: poker404,
+  //       name: HOME_PAGE_NAME,
+  //     },
+  //   ],
+  // },
   // {
   //   path: '/3d',
   //   component: test,
@@ -29,7 +29,7 @@ const routes = [
   // },
   {
     path: '/:pathMatch(.*)*',
-    redirect: { path: '/404' },
+    redirect: { path: '/3d' },
   },
 ]
 
