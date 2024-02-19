@@ -8,7 +8,7 @@ const routes = [
     path: '/3d',
     component: poker404,
     name: '3d',
-    hidden: true,
+    // hidden: true,
   },
   // {
   //   path: '/',
