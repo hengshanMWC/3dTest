@@ -1,0 +1,189 @@
+@import './common';
+@import './utils';
+
+.layout-w {
+  width: 100%;
+
+  @include media(width, var(--layout-max-width));
+  @include media(max-width, var(--layout-max-width));
+}
+
+.layout-full-w {
+  @apply w-full;
+  @include media(min-width, var(--layout-max-width));
+}
+
+.content-w {
+  @apply w-[94%];
+  @include media(width, var(--layout-max-width));
+  @include media(max-width, var(--layout-max-width));
+}
+
+// main内容跟header距离
+.main-top {
+  padding-top: var(--main-top);
+
+  @include media(padding-top, var(--main-m-top));
+}
+
+// tabs的高度
+.tabs-height {
+  height: var(--tabs-height);
+}
+
+// 具体页面工具栏的高度
+.page-utils-height {
+  height: var(--page-utils-height);
+}
+
+.content-height {
+  height: calc(
+    100vh - var(--header-height) - var(--main-top) - var(--page-utils-height)
+  );
+
+  @include media(
+    height,
+    calc(
+      100vh - var(--header-height) - var(--main-m-top) - var(--tabs-height) - var(
+          --page-utils-height
+        )
+    )
+  );
+}
+
+.content-min-height {
+  min-height: calc(
+    100vh - var(--header-height) - var(--main-top) - var(--page-utils-height)
+  );
+
+  @include media(
+    min-height,
+    calc(
+      100vh - var(--header-height) - var(--main-m-top) - var(--tabs-height) - var(
+          --page-utils-height
+        )
+    )
+  );
+}
+
+.content-notUtils-height {
+  height: calc(100vh - var(--header-height) - var(--main-m-top));
+
+  @include media(
+    height,
+    calc(100vh - var(--header-height) - var(--main-m-top) - var(--tabs-height))
+  );
+}
+
+.content-notUtils-min-height {
+  min-height: calc(100vh - var(--header-height) - var(--main-top));
+
+  @include media(
+    min-height,
+    calc(100vh - var(--header-height) - var(--main-m-top) - var(--tabs-height))
+  );
+}
+
+.red-bg-gradient {
+  background: linear-gradient(90deg, #6fe6ff 0%, #ff7f97 99%);
+}
+
+.item-btn {
+  @extend .flex-center;
+  @apply text-sm rounded cursor-pointer;
+
+  width: 174px;
+  height: 32px;
+  color: #000;
+  user-select: none;
+}
+
+.btn-red-bg {
+  background: linear-gradient(90deg, #ffd46f 0%, #ff7f98 100%);
+
+  @extend .item-btn;
+}
+
+.btn-blue-bg {
+  background: linear-gradient(90deg, #57e0ff 0%, #ff7f98 100%);
+
+  @extend .item-btn;
+}
+
+.btn-orange-bg {
+  background: linear-gradient(90deg, #ffa565 0%, #ff7f98 100%);
+
+  @extend .item-btn;
+}
+
+.btn-disable {
+  background: linear-gradient(90deg, #dadada 0%, #b0b0b0 100%);
+
+  @extend .item-btn;
+}
+
+.itme-box {
+  background: var(--item-bg);
+}
+
+.orange-color {
+  color: var(--orange-color);
+}
+
+.gray-color {
+  color: var(--gray-color);
+}
+
+.gray-bg {
+  background-color: var(--gray-color);
+}
+
+.plain-color {
+  color: var(--plain-color);
+}
+
+.red-color {
+  color: var(--red-color);
+}
+
+.wake-btn {
+  user-select: none;
+  border: 1px solid #ffd46f;
+
+  @apply py-1 px-6 cursor-pointer rounded;
+  @extend .flex-center;
+}
+
+.white-btn {
+  // user-select: none;
+  border: 1px solid #fff;
+
+  @apply py-1 px-6 cursor-pointer rounded;
+  @extend .flex-center;
+}
+
+.title_board {
+  border: 1px solid;
+
+  @apply py-1 px-6 rounded;
+  @extend .flex-center;
+}
+
+.input-bg {
+  background-color: var(--input-bg);
+}
+
+.input-item {
+  @extend .input-bg;
+  @apply rounded h-[2rem];
+}
+
+.utils-box {
+  @extend .layout-w;
+  @extend .page-utils-height;
+  @apply px-1 md:px-0;
+}
+
+.modal-content {
+  @apply px-4 md:px-0;
+}

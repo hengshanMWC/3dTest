@@ -1,0 +1,45 @@
+/* 引入字体 */
+@font-face {
+  font-family: JoystixMonospace;
+  src: url('../font/joystix monospace.otf') format('truetype'); /* 替换为你的字体文件路径 */
+}
+
+body {
+  font-family: JoystixMonospace, Lato, 'Helvetica Neue', Helvetica, Arial,
+    sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* 自动移滚动条样式 */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: rgb(50 50 50 / 30%);
+  border-radius: 1em;
+}
+
+::-webkit-scrollbar-track {
+  background-color: rgb(50 50 50 / 10%);
+  border-radius: 1em;
+}
+
+/* 自动移滚动条样式end */
+ul {
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  list-style-type: none;
+}
+
+w3m-modal {
+  /* antd的弹窗2000 */
+  z-index: 2001;
+}

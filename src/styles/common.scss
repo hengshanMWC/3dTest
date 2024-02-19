@@ -1,0 +1,40 @@
+@import './utils';
+
+/* 上下居中，左右各两边 */
+.flex-sb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flex-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.border-color {
+  border-color: var(--tab-border-color);
+}
+
+/* 居中 */
+.absolute-center {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.relative-y-center {
+  position: relative;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.ellipsis-1 {
+  @include ellipsis;
+}
+
+.ellipsis-2 {
+  @include ellipsis(2);
+}

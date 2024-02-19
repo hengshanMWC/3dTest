@@ -1,0 +1,18 @@
+:root {
+  --header-height: 64px;
+  --footer-height: 120px;
+  --tab-border-color: rgb(255 255 255 / 9%);
+  --layout-max-width: 1095px;
+  --body-color: #18181c;
+  --item-bg: #2a2a2b;
+  --plain-color: rgb(209 209 210);
+  --gray-color: #939393;
+  --input-bg: #40434a;
+  --orange-color: #ffa565;
+  --red-color: #f96482;
+  --main-m-top: 24px;
+  --main-top: 0.75rem;
+  --tabs-height: 61px;
+  --page-utils-height: 51px;
+  --md-width: 768px;
+}
