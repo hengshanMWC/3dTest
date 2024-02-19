@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import glb from './Soldier.glb'
 
 let gScene = null // 场景
+const dimian = -9
 export default {
   data() {
     return {
@@ -16,8 +17,8 @@ export default {
       renderer: null, // 渲染器对象
       controls: null, //
       currentAnim: null,
-      neck: null,
-      waist: null,
+      // neck: null,
+      // waist: null,
       possibleAnims: null,
       mixer: null,
       clock: null,
@@ -28,20 +29,37 @@ export default {
   },
   mounted() {
     this.init()
-    // document.addEventListener('mousemove', e => {
-    //   const mousecoords = this.getMousePos(e)
-    //   if (this.neck && this.waist) {
-    //     this.moveJoint(mousecoords, this.neck, 50)
-    //     this.moveJoint(mousecoords, this.waist, 30)
-    //   }
-    // })
+    document.addEventListener('mousemove', e => {
+      const mousecoords = this.getMousePos(e)
+      this.handleMousemove(mousecoords)
+      // if (this.neck && this.waist) {
+      //   this.moveJoint(mousecoords, this.neck, 50)
+      //   this.moveJoint(mousecoords, this.waist, 30)
+      // }
+    })
     // window.addEventListener('click', e => this.raycast(e))
     // window.addEventListener('touchend', e => this.raycast(e, true))
   },
   methods: {
+    handleMousemove(mousecoords) {
+      const centerX = window.innerWidth / 2
+      const centerY = window.innerHeight / 2
+      const rotationX = ((mousecoords.y - centerY) / centerY) * 0.007
+      const rotationY = ((mousecoords.x - centerX) / centerX) * 0.03
+      this.camera.rotation.x = rotationX + 0.09966865249116202
+      this.camera.rotation.y = rotationY + 0
+      // const mousecoordsX = mousecoords.x / 2
+      // const mousecoordsY = mousecoords.y / 2
+      // const x = (mousecoordsX / centerX) * 0.05
+      // const y = (mousecoordsY / centerY) * 0.05
+
+      // this.camera.rotation.y = (mousecoords.x > centerX ? 1 : -1) * x + 0
+      // this.camera.rotation.x = (mousecoords.y > centerY ? 1 : -1) * y + 0.09
+      // console.log('x,y', mousecoordsY, centerY, this.camera.rotation.x, y)
+    },
     /** 创建场景 */
     initScene() {
-      const backgroundColor = 0xf1f1f1
+      const backgroundColor = 'red'
       const scene = new THREE.Scene()
       scene.background = new THREE.Color(backgroundColor)
       scene.fog = new THREE.Fog(backgroundColor, 60, 100) // 雾化效果
@@ -105,8 +123,8 @@ export default {
     /** 创建网格模型对象 */
     initMesh() {
       const loader = new GLTFLoader()
-      const neck = null
-      const waist = null
+      // const neck = null
+      // const waist = null
 
       // 加载纹理贴图
       const texture = new THREE.TextureLoader().load(
@@ -146,7 +164,7 @@ export default {
 
           // 放大 7 倍
           model.scale.set(10, 10, 10)
-          model.position.y = -11
+          model.position.y = dimian
           // 旋转过来
           model.rotation.y = 3.1
 
@@ -185,11 +203,11 @@ export default {
 
           // 得到动画操作对象
           // const idle = mixer.clipAction(idleAnim)
-          this.currentAnim = possibleAnims[1]
+          this.currentAnim = possibleAnims[3]
           this.currentAnim.play() // 播放空闲动画
 
-          this.neck = neck
-          this.waist = waist
+          // this.neck = neck
+          // this.waist = waist
           this.possibleAnims = possibleAnims
           this.mixer = mixer
           window.vue = this
@@ -238,7 +256,7 @@ export default {
       // floor.receiveShadow = true
       floor.rotation.x = -0.5 * Math.PI
       floor.receiveShadow = true
-      floor.position.y = -11
+      floor.position.y = dimian
       gScene.add(floor)
     },
 
