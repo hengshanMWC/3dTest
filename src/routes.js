@@ -1,4 +1,4 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHashHistory } from 'vue-router'
 import NotFound from './pages/404.vue'
 import poker404 from './pages/poker404.vue'
 import { HOME_PAGE_NAME } from './constant'
@@ -36,7 +36,7 @@ const routes = [
 export default routes
 
 export const router = createRouter({
-  history: createWebHistory(),
+  history: createWebHashHistory(),
   routes,
 })
 
