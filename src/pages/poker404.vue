@@ -5,6 +5,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/addons/libs/stats.module.js'
 import { useEventListener } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
+import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 import glb from './Soldier.glb'
 
 const bg = '#87110e'
@@ -24,6 +25,8 @@ let mouseY = 0
 const statsRef = ref(null)
 let stats = null
 const particles = []
+const spheres = []
+let effect = null
 
 function onDocumentMouseMove(mousecoords) {
   mouseX = (mousecoords.x - window.innerWidth / 2) / 55
@@ -178,6 +181,42 @@ function initParticle() {
     scene.add(particle)
   }
 }
+function initBubble() {
+  const path = '/cube/pisa/'
+  const format = '.png'
+  const urls = [
+    `${path}px${format}`,
+    `${path}nx${format}`,
+    `${path}py${format}`,
+    `${path}ny${format}`,
+    `${path}pz${format}`,
+    `${path}nz${format}`,
+  ]
+  const textureCube = new THREE.CubeTextureLoader().load(urls)
+  const geometry = new THREE.SphereGeometry(0.2, 32, 16)
+  const material = new THREE.MeshBasicMaterial({
+    color: 0xffffff,
+    envMap: textureCube,
+  })
+
+  for (let i = 0; i < 5; i++) {
+    const mesh = new THREE.Mesh(geometry, material)
+
+    mesh.position.x = Math.random() * 10 - 5
+    mesh.position.y = Math.random() * 10 - 5
+    mesh.position.z = Math.random() * 10 - 5
+
+    mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1
+
+    scene.add(mesh)
+
+    spheres.push(mesh)
+  }
+  const width = window.innerWidth || 2
+  const height = window.innerHeight || 2
+  effect = new AnaglyphEffect(renderer)
+  effect.setSize(width, height)
+}
 
 /** 创建地面 */
 function initFloor() {
@@ -207,6 +246,7 @@ function init() {
 
   clock = new THREE.Clock()
   initMesh()
+  initBubble()
   initParticle()
   initLight()
   initFloor()
@@ -232,6 +272,7 @@ function update() {
   camera.position.y += (-mouseY - camera.position.y) * 0.05
   camera.lookAt(scene.position)
 
+  updateBubble()
   updateParticle()
 
   stats.update()
@@ -248,6 +289,18 @@ function updateParticle() {
     const z = Math.cos(time * item.z) * 30
     item.particle.position.set(x, y, z)
   })
+}
+function updateBubble() {
+  const timer = 0.0001 * Date.now()
+
+  for (let i = 0, il = spheres.length; i < il; i++) {
+    const sphere = spheres[i]
+
+    sphere.position.x = 11 * Math.cos(timer + i)
+    sphere.position.y = 11 * Math.sin(timer + i * 1.1)
+  }
+
+  effect.render(scene, camera)
 }
 function resizeRendererToDisplaySize(renderer) {
   const canvas = renderer.domElement
@@ -280,7 +333,6 @@ function playModifierAnimation(to) {
   currentAnim = to
   to.play()
 }
-
 function palyAnimation(index) {
   playModifierAnimation(possibleAnimsRef.value[index])
 }
