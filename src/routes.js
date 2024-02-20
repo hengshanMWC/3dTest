@@ -1,5 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
-import NotFound from './pages/404.vue'
+import jiqiren from './pages/jiqiren.vue'
+import paomo from './pages/paomo.vue'
 import poker404 from './pages/poker404.vue'
 import { HOME_PAGE_NAME } from './constant'
 
@@ -9,6 +10,16 @@ const routes = [
     component: poker404,
     name: '3d',
     // hidden: true,
+  },
+  {
+    path: '/jiqiren',
+    component: jiqiren,
+    name: 'jiqiren',
+  },
+  {
+    path: '/paomo',
+    component: paomo,
+    name: 'paomo',
   },
   // {
   //   path: '/',
