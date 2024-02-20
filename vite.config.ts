@@ -1,11 +1,9 @@
 import { URL, fileURLToPath } from 'node:url'
 import type { ConfigEnv } from 'vite'
 import { defineConfig } from 'vite'
-import svgLoader from 'vite-svg-loader'
 import viteCompression from 'vite-plugin-compression'
 import UnoCSS from 'unocss/vite'
 import vue from '@vitejs/plugin-vue'
-import VueI18nPlugin from '@intlify/unplugin-vue-i18n/vite'
 
 // https://vitejs.dev/config/
 const target = 'es2020'
@@ -28,16 +26,8 @@ export default defineConfig((env: ConfigEnv) => {
       },
     },
     plugins: [
-      svgLoader(),
       vue(),
       UnoCSS(),
-      VueI18nPlugin({
-        include: [
-          fileURLToPath(new URL('./src/locales/lang/**.json', import.meta.url)),
-        ],
-        runtimeOnly: false,
-        jitCompilation: true,
-      }),
       ...(production
         ? [
             viteCompression({
