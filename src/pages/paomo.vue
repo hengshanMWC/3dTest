@@ -31,7 +31,7 @@ onMounted(() => {
     )
     camera.position.z = 3
 
-    const path = '/pisa/'
+    const path = '/cube/pisa/'
     const format = '.png'
     const urls = [
       `${path}px${format}`,

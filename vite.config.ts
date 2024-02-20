@@ -6,7 +6,7 @@ import UnoCSS from 'unocss/vite'
 import vue from '@vitejs/plugin-vue'
 
 // https://vitejs.dev/config/
-const target = 'es2020'
+const target = 'esnext'
 export default defineConfig((env: ConfigEnv) => {
   const production = env.mode === 'production'
   return {

@@ -7,7 +7,8 @@ import { useEventListener } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
 import glb from './Soldier.glb'
 
-let gScene = null // 场景
+const bg = '#87110e'
+let scene = null // 场景
 const dimian = -9
 let camera = null // 相机
 let material = null // 材质
@@ -22,6 +23,7 @@ let mouseX = 0
 let mouseY = 0
 const statsRef = ref(null)
 let stats = null
+const particles = []
 
 function onDocumentMouseMove(mousecoords) {
   mouseX = (mousecoords.x - window.innerWidth / 2) / 55
@@ -30,11 +32,9 @@ function onDocumentMouseMove(mousecoords) {
 
 /** 创建场景 */
 function initScene() {
-  const backgroundColor = 'red'
-  const scene = new THREE.Scene()
-  scene.background = new THREE.Color(backgroundColor)
-  scene.fog = new THREE.Fog(backgroundColor, 60, 100) // 雾化效果
-  gScene = scene
+  scene = new THREE.Scene()
+  scene.background = new THREE.Color(bg)
+  scene.fog = new THREE.Fog(bg, 60, 100) // 雾化效果
 }
 
 /** 创建相机 */
@@ -103,7 +103,7 @@ function initMesh() {
       model.scale.set(10, 10, 10)
       model.position.y = dimian
 
-      gScene.add(model)
+      scene.add(model)
 
       // 拿到模型中自带的动画数据
       const fileAnimations = gltf.animations
@@ -138,7 +138,7 @@ function initLight() {
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.61)
   hemiLight.position.set(0, 50, 0)
   // Add hemisphere light to scene
-  gScene.add(hemiLight)
+  scene.add(hemiLight)
 
   const d = 8.25
   const dirLight = new THREE.DirectionalLight(0xffffff, 0.54)
@@ -152,14 +152,38 @@ function initLight() {
   dirLight.shadow.camera.top = d
   dirLight.shadow.camera.bottom = d * -1
   // Add directional Light to scene
-  gScene.add(dirLight)
+  scene.add(dirLight)
+}
+function getRandomHexColor() {
+  // 生成一个随机的0到16777215之间的整数
+  const randomColor = Math.floor(Math.random() * 16777215)
+  // 将整数转换为十六进制，并在开头补零以确保是六位颜色代码
+  return `#${randomColor.toString(16).padStart(6, '0')}`
+}
+function initParticle() {
+  const sphere = new THREE.SphereGeometry(0.2, 8, 4)
+  const intensity = 100
+  for (let i = 0; i < 20; i++) {
+    const bg = getRandomHexColor()
+    const particle = new THREE.PointLight(bg, intensity)
+    particle.add(
+      new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ color: bg })),
+    )
+    particles.push({
+      particle,
+      x: Math.random(),
+      y: Math.random(),
+      z: Math.random(),
+    })
+    scene.add(particle)
+  }
 }
 
 /** 创建地面 */
 function initFloor() {
   const floorGeometry = new THREE.PlaneGeometry(5000, 5000, 1, 1)
   const floorMaterial = new THREE.MeshPhongMaterial({
-    color: 'red',
+    color: bg,
     shininess: 0,
   })
 
@@ -167,7 +191,7 @@ function initFloor() {
   floor.rotation.x = -0.5 * Math.PI
   floor.receiveShadow = true
   floor.position.y = dimian
-  gScene.add(floor)
+  scene.add(floor)
 }
 
 function initStats() {
@@ -183,6 +207,7 @@ function init() {
 
   clock = new THREE.Clock()
   initMesh()
+  initParticle()
   initLight()
   initFloor()
 
@@ -205,14 +230,25 @@ function update() {
 
   camera.position.x += (mouseX - camera.position.x) * 0.05
   camera.position.y += (-mouseY - camera.position.y) * 0.05
-  camera.lookAt(gScene.position)
+  camera.lookAt(scene.position)
+
+  updateParticle()
 
   stats.update()
 
-  renderer.render(gScene, camera)
+  renderer.render(scene, camera)
   requestAnimationFrame(update)
 }
 
+function updateParticle() {
+  const time = Date.now() * 0.0005
+  particles.forEach(item => {
+    const x = Math.sin(time * item.x) * 30
+    const y = Math.cos(time * item.y) * 40
+    const z = Math.cos(time * item.z) * 30
+    item.particle.position.set(x, y, z)
+  })
+}
 function resizeRendererToDisplaySize(renderer) {
   const canvas = renderer.domElement
   const width = window.innerWidth
