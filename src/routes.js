@@ -2,6 +2,7 @@ import { createRouter, createWebHashHistory } from 'vue-router'
 import jiqiren from './pages/jiqiren.vue'
 import paomo from './pages/paomo.vue'
 import touming from './pages/touming.vue'
+import gsap from './pages/gsap.vue'
 
 import poker404 from './pages/poker404.vue'
 import { HOME_PAGE_NAME } from './constant'
@@ -28,6 +29,12 @@ const routes = [
     component: touming,
     name: 'touming',
   },
+  {
+    path: '/gsap',
+    component: gsap,
+    name: 'gsap',
+  },
+
   // {
   //   path: '/',
   //   redirect: { name: HOME_PAGE_NAME },

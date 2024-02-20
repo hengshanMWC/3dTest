@@ -28,10 +28,11 @@ let stats = null
 const particles = []
 const spheres = []
 let effect = null
-
+const cameraXYZ = [1, 2, -30]
+let touched = false
 function onDocumentMouseMove(mousecoords) {
-  mouseX = (mousecoords.x - window.innerWidth / 2) / 55
-  mouseY = (mousecoords.y - window.innerHeight / 2) / 300
+  mouseX = mousecoords.x
+  mouseY = mousecoords.y
 }
 
 /** 创建场景 */
@@ -49,8 +50,9 @@ function initCamera() {
     1,
     100,
   )
-  camera.position.set(1, 2, -30)
+  camera.position.set(...cameraXYZ)
   camera.lookAt(0, 1, 0)
+  window.camera = camera
 }
 
 /** 创建渲染器 */
@@ -268,11 +270,16 @@ function update() {
     camera.aspect = canvas.clientWidth / canvas.clientHeight
     camera.updateProjectionMatrix() // 重新计算相机对象的投影矩阵值
   }
+  if (touched) {
+    const innerWidthCenter = window.innerWidth / 2
+    const innerHeightCenter = window.innerHeight / 2
+    camera.position.x =
+      ((mouseX - innerWidthCenter) * cameraXYZ[0]) / 200 + cameraXYZ[0]
+    camera.position.y =
+      ((mouseY - innerHeightCenter) * cameraXYZ[1]) / 1500 + cameraXYZ[1]
+  }
 
-  camera.position.x += (mouseX - camera.position.x) * 0.05
-  camera.position.y += (-mouseY - camera.position.y) * 0.05
   camera.lookAt(scene.position)
-
   updateBubble()
   updateParticle()
 
@@ -341,6 +348,7 @@ onMounted(() => {
   init()
 })
 useEventListener(document, 'mousemove', e => {
+  touched = true
   const mousecoords = getMousePos(e)
   onDocumentMouseMove(mousecoords)
 })
