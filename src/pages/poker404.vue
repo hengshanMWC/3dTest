@@ -1,7 +1,8 @@
 <script setup>
 import * as THREE from 'three'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
+
+// import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/addons/libs/stats.module.js'
 import { useEventListener } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
@@ -14,7 +15,7 @@ const dimian = -9
 let camera = null // 相机
 let material = null // 材质
 let renderer = null // 渲染器对象
-let controls = null //
+// let controls = null //
 let currentAnim = null
 
 const possibleAnimsRef = ref([])
@@ -61,14 +62,14 @@ function initRenderer() {
   })
   renderer.shadowMap.enabled = true // 投射阴影
   renderer.setPixelRatio(window.devicePixelRatio)
-  controls = new OrbitControls(camera, renderer.domElement)
-  controls.maxPolarAngle = Math.PI / 2
-  controls.minPolarAngle = Math.PI / 3
-  controls.enableDamping = true
-  controls.enablePan = false
-  controls.dampingFactor = 0.1
-  controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
-  controls.autoRotateSpeed = 0.2 // 30
+  // controls = new OrbitControls(camera, renderer.domElement)
+  // controls.maxPolarAngle = Math.PI / 2
+  // controls.minPolarAngle = Math.PI / 3
+  // controls.enableDamping = true
+  // controls.enablePan = false
+  // controls.dampingFactor = 0.1
+  // controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
+  // controls.autoRotateSpeed = 0.2 // 30
 }
 
 /** 创建网格模型对象 */
