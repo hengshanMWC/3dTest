@@ -51,7 +51,7 @@ function initCamera() {
     45,
     window.innerWidth / window.innerHeight,
     1,
-    100,
+    // 100,
   )
   camera.setFocalLength(85)
   camera.position.set(...cameraXYZ)
