@@ -30,6 +30,8 @@ const particles = []
 const spheres = []
 let effect = null
 const cameraXYZ = [0, -3, 40]
+// const cameraXYZ = [0, -7.2857, 97.1428]
+
 const touched = false
 function onDocumentMouseMove(mousecoords) {
   mouseX = mousecoords.x
@@ -40,7 +42,7 @@ function onDocumentMouseMove(mousecoords) {
 function initScene() {
   scene = new THREE.Scene()
   scene.background = new THREE.Color(bg)
-  scene.fog = new THREE.Fog(bg, 60, 100) // 雾化效果
+  // scene.fog = new THREE.Fog(bg, 60, 100) // 雾化效果
 }
 
 /** 创建相机 */
@@ -51,6 +53,7 @@ function initCamera() {
     1,
     100,
   )
+  camera.setFocalLength(85)
   camera.position.set(...cameraXYZ)
   camera.lookAt(0, 1, 0)
   window.camera = camera
@@ -109,6 +112,7 @@ function initMesh() {
 
       // 放大 7 倍
       model.scale.set(10, 10, 10)
+      // model.scale.set(4.1176, 4.1176, 4.1176)
       model.position.y = dimian
 
       scene.add(model)
@@ -242,7 +246,22 @@ function initStats() {
   stats = new Stats()
   statsRef.value.appendChild(stats.dom)
 }
-
+function initDirectionalLight() {
+  const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5)
+  directionalLight.position.set(-5, 25, -1)
+  directionalLight.castShadow = true
+  directionalLight.shadow.camera.near = 0.01
+  directionalLight.shadow.camera.far = 500
+  directionalLight.shadow.camera.right = 30
+  directionalLight.shadow.camera.left = -30
+  directionalLight.shadow.camera.top = 30
+  directionalLight.shadow.camera.bottom = -30
+  directionalLight.shadow.mapSize.width = 1024
+  directionalLight.shadow.mapSize.height = 1024
+  directionalLight.shadow.radius = 4
+  directionalLight.shadow.bias = -0.00006
+  scene.add(directionalLight)
+}
 /** 初始化 */
 function init() {
   initScene()
