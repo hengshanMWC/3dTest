@@ -29,7 +29,7 @@ let stats = null
 const particles = []
 const spheres = []
 let effect = null
-const cameraXYZ = [0, -3, 40]
+const cameraXYZ = [-12.1, 5.76, 43.92]
 // const cameraXYZ = [0, -7.2857, 97.1428]
 
 const touched = false
@@ -53,9 +53,10 @@ function initCamera() {
     1,
     // 100,
   )
-  camera.setFocalLength(85)
+  // camera.setFocalLength(85)
   camera.position.set(...cameraXYZ)
-  camera.lookAt(0, 1, 0)
+  // camera.lookAt(0, 1, 0)
+  camera.rotation.set(-0.1304447, -0.266688, -0.0345597)
   window.camera = camera
 }
 
@@ -147,25 +148,43 @@ function initMesh() {
 
 /** 创建光源 */
 function initLight() {
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 0.61)
+  const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1)
   hemiLight.position.set(0, 50, 0)
-  // Add hemisphere light to scene
   scene.add(hemiLight)
-
+  // 阴影
   const d = 8.25
-  const dirLight = new THREE.DirectionalLight(0xffffff, 0.54)
-  dirLight.position.set(-8, 12, 8)
-  dirLight.castShadow = true
-  dirLight.shadow.mapSize = new THREE.Vector2(1024, 1024)
-  dirLight.shadow.camera.near = 0.1
-  dirLight.shadow.camera.far = 1500
-  dirLight.shadow.camera.left = d * -1
-  dirLight.shadow.camera.right = d
-  dirLight.shadow.camera.top = d
-  dirLight.shadow.camera.bottom = d * -1
-  // Add directional Light to scene
-  scene.add(dirLight)
+  const dirLightShadow = new THREE.DirectionalLight(0xffffff, 0.54)
+  dirLightShadow.position.set(-8, 12, 8)
+  dirLightShadow.castShadow = true
+  dirLightShadow.shadow.mapSize = new THREE.Vector2(1024, 1024)
+  dirLightShadow.shadow.camera.near = 0.1
+  dirLightShadow.shadow.camera.far = 1500
+  dirLightShadow.shadow.camera.left = d * -1
+  dirLightShadow.shadow.camera.right = d
+  dirLightShadow.shadow.camera.top = d
+  dirLightShadow.shadow.camera.bottom = d * -1
+  scene.add(dirLightShadow)
+  // 左光
+  const dirLightLeft = new THREE.SpotLight(0x3c66f2, 100)
+  dirLightLeft.position.set(-8, 1, 0)
+  dirLightLeft.angle = Math.PI / 10
+  // const helper = new THREE.SpotLightHelper(dirLightLeft, 1)
+  // window.helper = helper
+  // scene.add(helper)
+  scene.add(dirLightLeft)
+  // 右光
+  const dirLightRight = new THREE.SpotLight(0xe1e34f, 100)
+  dirLightRight.position.set(10, 6, 0)
+  dirLightRight.angle = Math.PI / 4
+  const targetObjectRight = new THREE.Object3D()
+  targetObjectRight.position.set(3, 6, 0)
+  scene.add(targetObjectRight)
+  // dirLightRight.target = targetObjectRight
+  // const helperRight = new THREE.SpotLightHelper(dirLightRight, 1)
+  // scene.add(helperRight)
+  scene.add(dirLightRight)
 }
+
 function getRandomHexColor() {
   // 生成一个随机的0到16777215之间的整数
   const randomColor = Math.floor(Math.random() * 16777215)
@@ -191,7 +210,7 @@ function initParticle() {
   }
 }
 function initBubble() {
-  const path = '/cube/pisa/'
+  const path = './cube/pisa/'
   const format = '.png'
   const urls = [
     `${path}px${format}`,
@@ -246,22 +265,7 @@ function initStats() {
   stats = new Stats()
   statsRef.value.appendChild(stats.dom)
 }
-function initDirectionalLight() {
-  const directionalLight = new THREE.DirectionalLight(0xffffff, 2.5)
-  directionalLight.position.set(-5, 25, -1)
-  directionalLight.castShadow = true
-  directionalLight.shadow.camera.near = 0.01
-  directionalLight.shadow.camera.far = 500
-  directionalLight.shadow.camera.right = 30
-  directionalLight.shadow.camera.left = -30
-  directionalLight.shadow.camera.top = 30
-  directionalLight.shadow.camera.bottom = -30
-  directionalLight.shadow.mapSize.width = 1024
-  directionalLight.shadow.mapSize.height = 1024
-  directionalLight.shadow.radius = 4
-  directionalLight.shadow.bias = -0.00006
-  scene.add(directionalLight)
-}
+
 /** 初始化 */
 function init() {
   initScene()
