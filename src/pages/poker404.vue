@@ -7,16 +7,17 @@ import Stats from 'three/addons/libs/stats.module.js'
 import { useEventListener } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
 import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
-import glb from './Soldier.glb'
+import glb from './role03_walk_nostep.glb'
 
 const bg = '#87110e'
 let scene = null // 场景
-const dimian = -9
+const dimian = -12
 let camera = null // 相机
-let material = null // 材质
+// const material = null // 材质
 let renderer = null // 渲染器对象
 let controls = null //
 let currentAnim = null
+let model = null
 
 const possibleAnimsRef = ref([])
 let mixer = null
@@ -28,8 +29,8 @@ let stats = null
 const particles = []
 const spheres = []
 let effect = null
-const cameraXYZ = [1, 2, -30]
-let touched = false
+const cameraXYZ = [0, -3, 40]
+const touched = false
 function onDocumentMouseMove(mousecoords) {
   mouseX = mousecoords.x
   mouseY = mousecoords.y
@@ -79,29 +80,30 @@ function initMesh() {
   const loader = new GLTFLoader()
 
   // 加载纹理贴图
-  const texture = new THREE.TextureLoader().load(
-    'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy.jpg',
-  )
-  texture.flipY = false
+  // const texture = new THREE.TextureLoader().load(
+  //   'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy.jpg',
+  // )
+  // texture.flipY = false
 
   /** 材质对象 */
-  material = new THREE.MeshPhongMaterial({
-    map: texture,
-    color: 0xffffff,
-    skinning: true,
-  })
+  // material = new THREE.MeshPhongMaterial({
+  //   map: texture,
+  //   color: 0xffffff,
+  //   skinning: true,
+  // })
 
   loader.load(
+    // 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb',
     glb,
     gltf => {
-      const model = gltf.scene
+      model = gltf.scene
 
       model.traverse(o => {
         if (o.isMesh) {
           // 启用投射和接收阴影的能力
           o.castShadow = true
           o.receiveShadow = true
-          o.material = material
+          // o.material = material
         }
       })
 
@@ -129,7 +131,7 @@ function initMesh() {
       })
 
       // 得到动画操作对象
-      currentAnim = possibleAnimsRef.value[3]
+      currentAnim = possibleAnimsRef.value[0]
       currentAnim.play() // 播放空闲动画
     },
     undefined, // We don't need this function
@@ -279,10 +281,15 @@ function update() {
       ((mouseY - innerHeightCenter) * cameraXYZ[1]) / 1500 + cameraXYZ[1]
   }
 
-  camera.lookAt(scene.position)
+  //
   updateBubble()
   updateParticle()
-
+  // camera.lookAt(scene.position)
+  // if (model) {
+  //   camera.lookAt(model.position)
+  // } else {
+  //   camera.lookAt(scene.position)
+  // }
   stats.update()
 
   renderer.render(scene, camera)
@@ -347,11 +354,11 @@ function palyAnimation(index) {
 onMounted(() => {
   init()
 })
-useEventListener(document, 'mousemove', e => {
-  touched = true
-  const mousecoords = getMousePos(e)
-  onDocumentMouseMove(mousecoords)
-})
+// useEventListener(document, 'mousemove', e => {
+//   touched = true
+//   const mousecoords = getMousePos(e)
+//   onDocumentMouseMove(mousecoords)
+// })
 </script>
 
 <template>
