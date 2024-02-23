@@ -7,15 +7,21 @@ import Stats from 'three/addons/libs/stats.module.js'
 import { useEventListener } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
 import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { gsap } from 'gsap'
+import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import glb from './role03_walk_nostep.glb'
 
+gsap.registerPlugin(ScrollTrigger, MotionPathPlugin)
+window.gsap = gsap
+window.ScrollTrigger = ScrollTrigger
 const bg = '#87110e'
 let scene = null // 场景
 const dimian = -12
 let camera = null // 相机
 // const material = null // 材质
 let renderer = null // 渲染器对象
-let controls = null //
+const controls = null //
 let currentAnim = null
 let model = null
 
@@ -29,9 +35,52 @@ let stats = null
 const particles = []
 const spheres = []
 let effect = null
-const cameraXYZ = [-12.1, 5.76, 43.92]
+const mirrorOperations = [
+  {
+    position: {
+      x: 3,
+      y: 9,
+      z: 10,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+  {
+    position: {
+      x: 11.791,
+      y: 6.892,
+      z: 1.861,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+  {
+    position: {
+      x: -4.1616,
+      y: 8.86635,
+      z: -23.61664,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+]
+window.mirrorOperations = mirrorOperations
+// const cameraXYZ = [12.1, 5.76, 43.92]
+// const cameraXYZ = [0, 0, 0]
+// const cameraXYZ = [3, 9, 10]
 // const cameraXYZ = [0, -7.2857, 97.1428]
-
+// const cameraRotation1 = [-0.05, 0.35, 0.1]
+// const cameraRotation2 = [-0.05, 0.35, 0.1]
+// window.cameraRotation1 = cameraRotation1
 const touched = false
 function onDocumentMouseMove(mousecoords) {
   mouseX = mousecoords.x
@@ -42,7 +91,7 @@ function onDocumentMouseMove(mousecoords) {
 function initScene() {
   scene = new THREE.Scene()
   scene.background = new THREE.Color(bg)
-  // scene.fog = new THREE.Fog(bg, 60, 100) // 雾化效果
+  scene.fog = new THREE.Fog(bg, 60, 100) // 雾化效果
 }
 
 /** 创建相机 */
@@ -54,9 +103,13 @@ function initCamera() {
     // 100,
   )
   // camera.setFocalLength(85)
-  camera.position.set(...cameraXYZ)
-  // camera.lookAt(0, 1, 0)
-  camera.rotation.set(-0.1304447, -0.266688, -0.0345597)
+  const position = mirrorOperations[0].position
+  const lookAt = mirrorOperations[0].lookAt
+  camera.position.set(position.x, position.y, position.z)
+  // camera.lookAt(lookAt.x, lookAt.y, lookAt.z)
+  // camera.rotation.set(...cameraRotation)
+  const helper = new THREE.CameraHelper(camera)
+  scene.add(helper)
   window.camera = camera
 }
 
@@ -69,14 +122,14 @@ function initRenderer() {
   })
   renderer.shadowMap.enabled = true // 投射阴影
   renderer.setPixelRatio(window.devicePixelRatio)
-  controls = new OrbitControls(camera, renderer.domElement)
-  controls.maxPolarAngle = Math.PI / 2
-  controls.minPolarAngle = Math.PI / 3
-  controls.enableDamping = true
-  controls.enablePan = false
-  controls.dampingFactor = 0.1
-  controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
-  controls.autoRotateSpeed = 0.2 // 30
+  // controls = new OrbitControls(camera, renderer.domElement)
+  // controls.maxPolarAngle = Math.PI / 2
+  // controls.minPolarAngle = Math.PI / 3
+  // controls.enableDamping = true
+  // controls.enablePan = false
+  // controls.dampingFactor = 0.1
+  // controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
+  // controls.autoRotateSpeed = 0.2 // 30
 }
 
 /** 创建网格模型对象 */
@@ -100,7 +153,7 @@ function initMesh() {
     // 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb',
     glb,
     gltf => {
-      model = gltf.scene
+      window.model = model = gltf.scene
 
       model.traverse(o => {
         if (o.isMesh) {
@@ -117,7 +170,6 @@ function initMesh() {
       model.position.y = dimian
 
       scene.add(model)
-
       // 拿到模型中自带的动画数据
       const fileAnimations = gltf.animations
 
@@ -165,7 +217,7 @@ function initLight() {
   dirLightShadow.shadow.camera.bottom = d * -1
   scene.add(dirLightShadow)
   // 左光
-  const dirLightLeft = new THREE.SpotLight(0x3c66f2, 100)
+  const dirLightLeft = new THREE.SpotLight(0x5786cf, 100)
   dirLightLeft.position.set(-8, 1, 0)
   dirLightLeft.angle = Math.PI / 10
   // const helper = new THREE.SpotLightHelper(dirLightLeft, 1)
@@ -173,12 +225,13 @@ function initLight() {
   // scene.add(helper)
   scene.add(dirLightLeft)
   // 右光
-  const dirLightRight = new THREE.SpotLight(0xe1e34f, 100)
+  const dirLightRight = new THREE.SpotLight(0xeebe8f, 100)
   dirLightRight.position.set(10, 6, 0)
   dirLightRight.angle = Math.PI / 4
-  const targetObjectRight = new THREE.Object3D()
-  targetObjectRight.position.set(3, 6, 0)
-  scene.add(targetObjectRight)
+  // const targetObjectRight = new THREE.Object3D()
+  // window.dirLightRight = dirLightRight
+  // targetObjectRight.position.set(3, 6, 0)
+  // scene.add(targetObjectRight)
   // dirLightRight.target = targetObjectRight
   // const helperRight = new THREE.SpotLightHelper(dirLightRight, 1)
   // scene.add(helperRight)
@@ -280,7 +333,7 @@ function init() {
   initFloor()
 
   initStats()
-
+  initScroll()
   update()
 }
 
@@ -295,16 +348,21 @@ function update() {
     camera.aspect = canvas.clientWidth / canvas.clientHeight
     camera.updateProjectionMatrix() // 重新计算相机对象的投影矩阵值
   }
-  if (touched) {
-    const innerWidthCenter = window.innerWidth / 2
-    const innerHeightCenter = window.innerHeight / 2
-    camera.position.x =
-      ((mouseX - innerWidthCenter) * cameraXYZ[0]) / 200 + cameraXYZ[0]
-    camera.position.y =
-      ((mouseY - innerHeightCenter) * cameraXYZ[1]) / 1500 + cameraXYZ[1]
-  }
+  // if (touched) {
+  //   const innerWidthCenter = window.innerWidth / 2
+  //   const innerHeightCenter = window.innerHeight / 2
+  //   camera.position.x =
+  //     ((mouseX - innerWidthCenter) * cameraXYZ[0]) / 200 + cameraXYZ[0]
+  //   camera.position.y =
+  //     ((mouseY - innerHeightCenter) * cameraXYZ[1]) / 1500 + cameraXYZ[1]
+  // }
+  // 计算相机位置
+  // camera.position.x = radius * Math.sin(angle)
+  // camera.position.z = radius * Math.cos(angle)
+  // camera.lookAt(cube.position)
 
-  //
+  // 增加角度，使相机绕着立方体旋转
+  // angle += rotationSpeed
   updateBubble()
   updateParticle()
   // camera.lookAt(scene.position)
@@ -313,6 +371,12 @@ function update() {
   // } else {
   //   camera.lookAt(scene.position)
   // }
+  // camera.rotation.set(...cameraRotation1)
+  camera.lookAt(
+    mirrorOperations[1].lookAt.x,
+    mirrorOperations[1].lookAt.y,
+    mirrorOperations[1].lookAt.z,
+  )
   stats.update()
 
   renderer.render(scene, camera)
@@ -374,39 +438,85 @@ function playModifierAnimation(to) {
 function palyAnimation(index) {
   playModifierAnimation(possibleAnimsRef.value[index])
 }
+function initScroll() {
+  gsap.to(camera.position, {
+    motionPath: {
+      path: [mirrorOperations[1].position, mirrorOperations[2].position],
+    },
+    scrollTrigger: {
+      trigger: '.box2',
+      start: 'top 95%',
+      end: 'top 5%',
+      scrub: true,
+      markers: true,
+      id: 'scrub',
+    },
+  })
+}
 onMounted(() => {
   init()
+  // gsap.to(
+  //   { x: 0 },
+  //   {
+  //     scrollTrigger: '.box2', // start animation when ".box" enters the viewport
+  //     x: 500,
+  //     onUpdate(...a) {
+  //       console.log(...a)
+  //     },
+  //   },
+  // )
 })
+
 // useEventListener(document, 'mousemove', e => {
 //   touched = true
 //   const mousecoords = getMousePos(e)
 //   onDocumentMouseMove(mousecoords)
 // })
+
+// // You can use a ScrollTrigger in a tween or timeline
 </script>
 
 <template>
-  <div class="wrapper">
-    <div ref="statsRef" class="stats"></div>
-    <div class="buttons">
-      <div
-        v-for="(btn, index) in possibleAnimsRef"
-        :key="index"
-        class="button"
-        @click="palyAnimation(index)"
-      >
-        <span>{{ btn._clip.name }}</span>
+  <div>
+    <div class="wrapper">
+      <div ref="statsRef" class="stats"></div>
+      <div class="buttons">
+        <div
+          v-for="(btn, index) in possibleAnimsRef"
+          :key="index"
+          class="button"
+          @click="palyAnimation(index)"
+        >
+          <span>{{ btn._clip.name }}</span>
+        </div>
       </div>
+      <canvas id="c"></canvas>
     </div>
-    <canvas id="c"></canvas>
+    <div class="footer">
+      <div style="height: 100vh; background-color: aqua" class="box1"></div>
+      <div style="height: 150vh; background-color: aqua" class="box2"></div>
+      <div style="position: relative; z-index: 1; height: 80vh">你好</div>
+    </div>
   </div>
 </template>
 
 <style scoped>
 .wrapper {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
+  width: 100%;
+  height: 100%;
+}
+
+.footer {
+  position: relative;
+  z-index: auto;
 }
 
 #c {
