@@ -7,7 +7,7 @@ import Stats from 'three/addons/libs/stats.module.js'
 import { useEventListener } from '@vueuse/core'
 import { onMounted, ref } from 'vue'
 import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
-import glb from './Soldier.glb'
+import glb from '../asset/model/Soldier.glb'
 
 const bg = '#87110e'
 let scene = null // 场景

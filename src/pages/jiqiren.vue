@@ -6,7 +6,7 @@ import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
 
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js'
 import { onMounted } from 'vue'
-import glb from './Soldier.glb'
+import glb from '../asset/model/Soldier.glb'
 
 onMounted(() => {
   let scene, renderer, camera, stats

@@ -11,16 +11,17 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import Lenis from '@studio-freight/lenis'
-import glb from './role03_walk_nostep.glb'
+import glb from '../asset/model/role03_all.glb'
+import mirrorOperations from './mirrorOperations.json'
 
 gsap.registerPlugin(ScrollTrigger, MotionPathPlugin)
-const bg = '#87110e'
+const bg = '#333'
 let scene = null // 场景
 const dimian = -12
 let camera = null // 相机
 // const material = null // 材质
 let renderer = null // 渲染器对象
-// let controls = null //
+let controls = null //
 let currentAnim = null
 let model = null
 
@@ -51,128 +52,7 @@ function initSmoothScrolling() {
   requestAnimationFrame(scrollFn)
 }
 // const scrollFn = initSmoothScrolling()
-const mirrorOperations = [
-  {
-    position: {
-      x: 3,
-      y: 9,
-      z: 12,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: 7.138195444582843,
-      y: 7.648529270389185,
-      z: 11.160025349206737,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: 12.416683452182289,
-      y: 7.809889948321353,
-      z: 7.282800508327517,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: 13.356578217133153,
-      y: 6.9238888015030575,
-      z: 2.7679563208305042,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: 13.968149122734232,
-      y: 8.823049699493334,
-      z: -6.7781872320138294,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: -4.1616,
-      y: 8.86635,
-      z: -23.61664,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: -15.42684716554167,
-      y: 9.730936946412195,
-      z: -22.42972366005828,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: -26.69209433108334,
-      y: 10.595523892824389,
-      z: -21.24280732011656,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: -34.77226704784853,
-      y: 5.002440607117852,
-      z: 28.704523582833584,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-  {
-    position: {
-      x: -26.06623834522301,
-      y: 7.89037385319217,
-      z: 50.18228036760577,
-    },
-    lookAt: {
-      x: 0,
-      y: 9,
-      z: 0,
-    },
-  },
-]
+
 window.mirrorOperations = mirrorOperations
 
 const touched = false
@@ -216,14 +96,14 @@ function initRenderer() {
   })
   renderer.shadowMap.enabled = true // 投射阴影
   renderer.setPixelRatio(window.devicePixelRatio)
-  // controls = new OrbitControls(camera, renderer.domElement)
-  // controls.maxPolarAngle = Math.PI / 2
-  // controls.minPolarAngle = Math.PI / 3
-  // controls.enableDamping = true
-  // controls.enablePan = false
-  // controls.dampingFactor = 0.1
-  // controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
-  // controls.autoRotateSpeed = 0.2 // 30
+  controls = new OrbitControls(camera, renderer.domElement)
+  controls.maxPolarAngle = Math.PI / 2
+  controls.minPolarAngle = Math.PI / 3
+  controls.enableDamping = true
+  controls.enablePan = false
+  controls.dampingFactor = 0.1
+  controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
+  controls.autoRotateSpeed = 0.2 // 30
 }
 
 /** 创建网格模型对象 */
@@ -297,7 +177,7 @@ function initLight() {
   scene.add(hemiLight)
   // 阴影
   const d = 8.25
-  const dirLightShadow = new THREE.DirectionalLight(0xffffff, 0.54)
+  const dirLightShadow = new THREE.DirectionalLight(0xffffff, 0.5)
   dirLightShadow.position.set(-8, 12, 8)
   dirLightShadow.castShadow = true
   dirLightShadow.shadow.mapSize = new THREE.Vector2(1024, 1024)
@@ -309,25 +189,44 @@ function initLight() {
   dirLightShadow.shadow.camera.bottom = d * -1
   scene.add(dirLightShadow)
   // 左光
-  const dirLightLeft = new THREE.SpotLight(0x5786cf, 100)
-  dirLightLeft.position.set(-8, 1, 0)
-  dirLightLeft.angle = Math.PI / 10
-  // const helper = new THREE.SpotLightHelper(dirLightLeft, 1)
-  // window.helper = helper
-  // scene.add(helper)
+  const dirLightLeft = new THREE.DirectionalLight(0x5786cf, 3)
+  window.dirLightLeft = dirLightLeft
+  dirLightLeft.position.set(-7, 0, 1)
+  const targetLeftObject = new THREE.Object3D()
+  targetLeftObject.position.set(6, 7, 3)
+  window.targetLeftObject = targetLeftObject
+  // const helperLeft = new THREE.DirectionalLightHelper(dirLightLeft, 1)
+  // scene.add(helperLeft)
+  scene.add(targetLeftObject)
   scene.add(dirLightLeft)
-  // 右光
-  const dirLightRight = new THREE.SpotLight(0xeebe8f, 100)
-  dirLightRight.position.set(10, 6, 0)
-  dirLightRight.angle = Math.PI / 4
-  // const targetObjectRight = new THREE.Object3D()
-  // window.dirLightRight = dirLightRight
-  // targetObjectRight.position.set(3, 6, 0)
-  // scene.add(targetObjectRight)
-  // dirLightRight.target = targetObjectRight
-  // const helperRight = new THREE.SpotLightHelper(dirLightRight, 1)
-  // scene.add(helperRight)
-  scene.add(dirLightRight)
+  // 正面光
+  const dirLightFront = new THREE.DirectionalLight(0xeebe8f, 8)
+  window.dirLightFront = dirLightFront
+  dirLightFront.position.set(5, 7, 5)
+  const targetFrontObject = new THREE.Object3D()
+  targetFrontObject.position.set(2, 7, 0)
+  window.targetFrontObject = targetFrontObject
+  scene.add(targetFrontObject)
+
+  dirLightFront.target = targetFrontObject
+
+  // const helperFront = new THREE.DirectionalLightHelper(dirLightFront, 1)
+  // scene.add(helperFront)
+  scene.add(dirLightFront)
+  // 背面光
+  const dirLightVerso = new THREE.DirectionalLight(0xeebe8f, 6)
+  window.dirLightVerso = dirLightVerso
+  dirLightVerso.position.set(0, 4, -8)
+  const targetVersoObject = new THREE.Object3D()
+  targetVersoObject.position.set(0, 4, 0)
+  window.targetVersoObject = targetVersoObject
+  scene.add(targetVersoObject)
+
+  dirLightVerso.target = targetVersoObject
+
+  // const helperVerson = new THREE.DirectionalLightHelper(dirLightVerso, 1)
+  // scene.add(helperVerson)
+  scene.add(dirLightVerso)
 }
 
 function getRandomHexColor() {
@@ -419,8 +318,8 @@ function init() {
 
   clock = new THREE.Clock()
   initMesh()
-  initBubble()
-  initParticle()
+  // initBubble()
+  // initParticle()
   initLight()
   initFloor()
 
@@ -455,8 +354,8 @@ function update() {
 
   // 增加角度，使相机绕着立方体旋转
   // angle += rotationSpeed
-  updateBubble()
-  updateParticle()
+  // updateBubble()
+  // updateParticle()
   // camera.lookAt(scene.position)
   // if (model) {
   //   camera.lookAt(model.position)
@@ -549,7 +448,7 @@ function initScroll() {
 }
 onMounted(() => {
   init()
-  initSmoothScrolling()
+  // initSmoothScrolling()
 })
 
 // useEventListener(document, 'mousemove', e => {
