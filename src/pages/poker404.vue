@@ -12,16 +12,14 @@ import { gsap } from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import glb from './role03_walk_nostep.glb'
 
-gsap.registerPlugin(ScrollTrigger, MotionPathPlugin)
-window.gsap = gsap
-window.ScrollTrigger = ScrollTrigger
+gsap.registerPlugin(ScrollTrigger, MotionPathPlugin, ScrollTrigger)
 const bg = '#87110e'
 let scene = null // 场景
 const dimian = -12
 let camera = null // 相机
 // const material = null // 材质
 let renderer = null // 渲染器对象
-const controls = null //
+// let controls = null //
 let currentAnim = null
 let model = null
 
@@ -40,7 +38,7 @@ const mirrorOperations = [
     position: {
       x: 3,
       y: 9,
-      z: 10,
+      z: 12,
     },
     lookAt: {
       x: 0,
@@ -50,9 +48,45 @@ const mirrorOperations = [
   },
   {
     position: {
-      x: 11.791,
-      y: 6.892,
-      z: 1.861,
+      x: 7.138195444582843,
+      y: 7.648529270389185,
+      z: 11.160025349206737,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+  {
+    position: {
+      x: 12.416683452182289,
+      y: 7.809889948321353,
+      z: 7.282800508327517,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+  {
+    position: {
+      x: 13.356578217133153,
+      y: 6.9238888015030575,
+      z: 2.7679563208305042,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+  {
+    position: {
+      x: 13.968149122734232,
+      y: 8.823049699493334,
+      z: -6.7781872320138294,
     },
     lookAt: {
       x: 0,
@@ -72,15 +106,57 @@ const mirrorOperations = [
       z: 0,
     },
   },
+  {
+    position: {
+      x: -15.42684716554167,
+      y: 9.730936946412195,
+      z: -22.42972366005828,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+  {
+    position: {
+      x: -26.69209433108334,
+      y: 10.595523892824389,
+      z: -21.24280732011656,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+  {
+    position: {
+      x: -34.77226704784853,
+      y: 5.002440607117852,
+      z: 28.704523582833584,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
+  {
+    position: {
+      x: -26.06623834522301,
+      y: 7.89037385319217,
+      z: 50.18228036760577,
+    },
+    lookAt: {
+      x: 0,
+      y: 9,
+      z: 0,
+    },
+  },
 ]
 window.mirrorOperations = mirrorOperations
-// const cameraXYZ = [12.1, 5.76, 43.92]
-// const cameraXYZ = [0, 0, 0]
-// const cameraXYZ = [3, 9, 10]
-// const cameraXYZ = [0, -7.2857, 97.1428]
-// const cameraRotation1 = [-0.05, 0.35, 0.1]
-// const cameraRotation2 = [-0.05, 0.35, 0.1]
-// window.cameraRotation1 = cameraRotation1
+
 const touched = false
 function onDocumentMouseMove(mousecoords) {
   mouseX = mousecoords.x
@@ -104,12 +180,12 @@ function initCamera() {
   )
   // camera.setFocalLength(85)
   const position = mirrorOperations[0].position
-  const lookAt = mirrorOperations[0].lookAt
+  // const lookAt = mirrorOperations[0].lookAt
   camera.position.set(position.x, position.y, position.z)
   // camera.lookAt(lookAt.x, lookAt.y, lookAt.z)
   // camera.rotation.set(...cameraRotation)
-  const helper = new THREE.CameraHelper(camera)
-  scene.add(helper)
+  // const helper = new THREE.CameraHelper(camera)
+  // scene.add(helper)
   window.camera = camera
 }
 
@@ -373,9 +449,9 @@ function update() {
   // }
   // camera.rotation.set(...cameraRotation1)
   camera.lookAt(
-    mirrorOperations[1].lookAt.x,
-    mirrorOperations[1].lookAt.y,
-    mirrorOperations[1].lookAt.z,
+    mirrorOperations[0].lookAt.x,
+    mirrorOperations[0].lookAt.y,
+    mirrorOperations[0].lookAt.z,
   )
   stats.update()
 
@@ -440,15 +516,16 @@ function palyAnimation(index) {
 }
 function initScroll() {
   gsap.to(camera.position, {
+    // ease: 'power2',
     motionPath: {
-      path: [mirrorOperations[1].position, mirrorOperations[2].position],
+      path: mirrorOperations.map(item => item.position).slice(1),
     },
     scrollTrigger: {
       trigger: '.box2',
       start: 'top 95%',
       end: 'top 5%',
       scrub: true,
-      markers: true,
+      // markers: true,
       id: 'scrub',
     },
   })
