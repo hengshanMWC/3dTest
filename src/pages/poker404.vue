@@ -10,9 +10,10 @@ import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
+import Lenis from '@studio-freight/lenis'
 import glb from './role03_walk_nostep.glb'
 
-gsap.registerPlugin(ScrollTrigger, MotionPathPlugin, ScrollTrigger)
+gsap.registerPlugin(ScrollTrigger, MotionPathPlugin)
 const bg = '#87110e'
 let scene = null // 场景
 const dimian = -12
@@ -33,6 +34,23 @@ let stats = null
 const particles = []
 const spheres = []
 let effect = null
+function initSmoothScrolling() {
+  const lenis = new Lenis({
+    lerp: 0.02, // 值越小平滑效果越明显
+    smoothWheel: true, // 为鼠标滚轮事件启用平滑滚动
+  })
+  // 每次用户滚动时更新ScrollTrigger
+  lenis.on('scroll', () => ScrollTrigger.update())
+  // 每一帧动画执行
+  const scrollFn = time => {
+    lenis.raf(time) // lenis中requestAnimationFrame方法
+    requestAnimationFrame(scrollFn) // 递归调用
+  }
+  // return scrollFn
+  // 启用动画帧
+  requestAnimationFrame(scrollFn)
+}
+// const scrollFn = initSmoothScrolling()
 const mirrorOperations = [
   {
     position: {
@@ -246,14 +264,12 @@ function initMesh() {
       model.position.y = dimian
 
       scene.add(model)
-      // 拿到模型中自带的动画数据
-      const fileAnimations = gltf.animations
 
       // 创建模型动作混合器
       mixer = new THREE.AnimationMixer(model)
 
-      // 处理其他动画
-      const clips = fileAnimations
+      // 拿到模型中自带的动画数据
+      const clips = gltf.animations
 
       // 遍历动画列表并生成操作对象存储起来
       possibleAnimsRef.value = clips.map(val => {
@@ -453,6 +469,7 @@ function update() {
     mirrorOperations[0].lookAt.y,
     mirrorOperations[0].lookAt.z,
   )
+  // scrollFn()
   stats.update()
 
   renderer.render(scene, camera)
@@ -514,16 +531,16 @@ function playModifierAnimation(to) {
 function palyAnimation(index) {
   playModifierAnimation(possibleAnimsRef.value[index])
 }
+
 function initScroll() {
   gsap.to(camera.position, {
-    // ease: 'power2',
     motionPath: {
       path: mirrorOperations.map(item => item.position).slice(1),
     },
     scrollTrigger: {
       trigger: '.box2',
-      start: 'top 95%',
-      end: 'top 5%',
+      start: 'top bottom',
+      end: 'bottom bottom',
       scrub: true,
       // markers: true,
       id: 'scrub',
@@ -532,16 +549,7 @@ function initScroll() {
 }
 onMounted(() => {
   init()
-  // gsap.to(
-  //   { x: 0 },
-  //   {
-  //     scrollTrigger: '.box2', // start animation when ".box" enters the viewport
-  //     x: 500,
-  //     onUpdate(...a) {
-  //       console.log(...a)
-  //     },
-  //   },
-  // )
+  initSmoothScrolling()
 })
 
 // useEventListener(document, 'mousemove', e => {
@@ -571,8 +579,8 @@ onMounted(() => {
     </div>
     <div class="footer">
       <div style="height: 100vh; background-color: aqua" class="box1"></div>
-      <div style="height: 150vh; background-color: aqua" class="box2"></div>
-      <div style="position: relative; z-index: 1; height: 80vh">你好</div>
+      <div style="height: 7000px; background-color: aqua" class="box2"></div>
+      <div style="position: relative; z-index: 1; height: 50vh">你好</div>
     </div>
   </div>
 </template>
