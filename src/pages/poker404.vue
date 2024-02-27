@@ -12,6 +12,7 @@ import { gsap } from 'gsap'
 import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import Lenis from '@studio-freight/lenis'
 import glb from '../asset/model/role03_all.glb'
+import showstandGlb from '../asset/model/role00_showstand_01.glb'
 import mirrorOperations from './mirrorOperations.json'
 
 gsap.registerPlugin(ScrollTrigger, MotionPathPlugin)
@@ -33,7 +34,7 @@ const possibleAnimsWalkRef = ref([])
 // 0: walk,1: idle
 let currentPossibleAnimsStatus = 0
 let activateCallback = null
-let activateId = 0
+const activateId = 0
 let mixer = null
 let clock = null
 let mouseX = 0
@@ -104,6 +105,8 @@ function initRenderer() {
   })
   renderer.shadowMap.enabled = true // 投射阴影
   renderer.setPixelRatio(window.devicePixelRatio)
+}
+function initControls() {
   controls = new OrbitControls(camera, renderer.domElement)
   controls.maxPolarAngle = Math.PI / 2
   controls.minPolarAngle = Math.PI / 3
@@ -147,7 +150,7 @@ function initMesh() {
       })
 
       model.scale.set(10, 10, 10)
-      model.position.y = dimian
+      model.position.y = dimian + 1
 
       scene.add(model)
 
@@ -352,6 +355,17 @@ function initFloor() {
   floor.receiveShadow = true
   floor.position.y = dimian
   scene.add(floor)
+
+  // 加载GLB模型作为地面
+  const loader = new GLTFLoader()
+  loader.load(showstandGlb, function (gltf) {
+    const ground = gltf.scene
+    // 调整地面位置和缩放
+    ground.position.set(0, dimian + 1, 0)
+    ground.scale.set(3, 3, 3) // 根据需要调整缩放
+    window.ground = ground
+    scene.add(ground)
+  })
 }
 
 function initStats() {
@@ -364,13 +378,14 @@ function init() {
   initScene()
   initCamera()
   initRenderer()
+  // initControls()
 
   clock = new THREE.Clock()
+  initFloor()
   initMesh()
   // initBubble()
   // initParticle()
   initLight()
-  initFloor()
 
   initStats()
   initScroll()
@@ -476,9 +491,8 @@ function handleActivate() {
   }
   window.currentPossibleAnims = currentPossibleAnims
   currentAnim.setLoop(THREE.LoopOnce)
-  const _activateId = activateId++
+
   function continuousAnimation() {
-    console.log('_activateId', _activateId)
     const maxIndex = getAnimationMaxIndex(currentPossibleAnims)
     const maxAnim = currentPossibleAnims[maxIndex]
     currentAnim.setLoop(THREE.LoopRepeat)
@@ -491,6 +505,7 @@ function handleActivate() {
     }
     currentAnim.play()
   }
+
   mixer.removeEventListener('finished', activateCallback)
   activateCallback = continuousAnimation
   mixer.addEventListener('finished', continuousAnimation)
@@ -502,15 +517,15 @@ function handleActivate() {
  * @params to 下一个要执行的动画
  * @params tSpeed 下一个动画执行完成后回到当前动画的时间
  */
-function playModifierAnimation(to) {
-  if (to === currentAnim) return
-  currentAnim.stop()
-  currentAnim = to
-  to.play()
-}
-function palyAnimation(index) {
-  playModifierAnimation(possibleAnimsRef.value[index])
-}
+// function playModifierAnimation(to) {
+//   if (to === currentAnim) return
+//   currentAnim.stop()
+//   currentAnim = to
+//   to.play()
+// }
+// function palyAnimation(index) {
+//   playModifierAnimation(possibleAnimsRef.value[index])
+// }
 
 function initScroll() {
   gsap.to(camera.position, {
@@ -529,7 +544,7 @@ function initScroll() {
 }
 onMounted(() => {
   init()
-  // initSmoothScrolling()
+  initSmoothScrolling()
 })
 
 // useEventListener(document, 'mousemove', e => {

@@ -1,12 +1,5 @@
-/* 引入字体 */
-@font-face {
-  font-family: JoystixMonospace;
-  src: url('../font/joystix monospace.otf') format('truetype'); /* 替换为你的字体文件路径 */
-}
-
 body {
-  font-family: JoystixMonospace, Lato, 'Helvetica Neue', Helvetica, Arial,
-    sans-serif;
+  font-family: Lato, 'Helvetica Neue', Helvetica, Arial, sans-serif;
 }
 
 * {
