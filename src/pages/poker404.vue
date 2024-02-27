@@ -5,7 +5,7 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/addons/libs/stats.module.js'
 import { useEventListener } from '@vueuse/core'
-import { onMounted, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
@@ -26,6 +26,14 @@ let currentAnim = null
 let model = null
 
 const possibleAnimsRef = ref([])
+// 按键以后甩剑并进入站立idle
+const possibleAnimsIdleRef = ref([])
+// 再按键通过walk_read回到walk(走路)的状态
+const possibleAnimsWalkRef = ref([])
+// 0: walk,1: idle
+let currentPossibleAnimsStatus = 0
+let activateCallback = null
+let activateId = 0
 let mixer = null
 let clock = null
 let mouseX = 0
@@ -138,9 +146,7 @@ function initMesh() {
         }
       })
 
-      // 放大 7 倍
       model.scale.set(10, 10, 10)
-      // model.scale.set(4.1176, 4.1176, 4.1176)
       model.position.y = dimian
 
       scene.add(model)
@@ -149,19 +155,43 @@ function initMesh() {
       mixer = new THREE.AnimationMixer(model)
 
       // 拿到模型中自带的动画数据
-      const clips = gltf.animations
+      const clips = gltf.animations.slice(0, -1)
 
       // 遍历动画列表并生成操作对象存储起来
-      possibleAnimsRef.value = clips.map(val => {
+      const possibleAnims = clips.map(val => {
         let clip = THREE.AnimationClip.findByName(clips, val.name)
 
         clip = mixer.clipAction(clip)
+        // clip.setLoop(THREE.LoopOnce)
         return clip
       })
-
-      // 得到动画操作对象
-      currentAnim = possibleAnimsRef.value[0]
+      console.log('possibleAnims', possibleAnims)
+      possibleAnimsRef.value = [
+        possibleAnims[1],
+        possibleAnims[3],
+        possibleAnims[0],
+        possibleAnims[2],
+      ]
+      /**
+       * 初始为走路
+       * 按键以后甩剑并进入站立idle
+       * 再按键通过walk_read回到walk(走路)的状态
+       * walk  -  walk_swor  -  idle  -  walk_read  - walk
+       */
+      // 按键以后甩剑并进入站立idle
+      possibleAnimsIdleRef.value = window.possibleAnimsIdleRef = [
+        possibleAnims[3],
+        possibleAnims[0],
+      ]
+      // 再按键通过walk_read回到walk(走路)的状态
+      possibleAnimsWalkRef.value = window.possibleAnimsWalkRef = [
+        possibleAnims[2],
+        possibleAnims[1],
+      ]
+      // 初始为走路
+      window.vv = currentAnim = possibleAnimsWalkRef.value[1]
       currentAnim.play() // 播放空闲动画
+      // mixer.addEventListener('finished', continuousAnimation)
     },
     undefined, // We don't need this function
     error => {
@@ -170,6 +200,25 @@ function initMesh() {
   )
 }
 
+// function continuousAnimation() {
+//   const nextAnim = getAnimationLoopNext()
+//   currentAnim.stop()
+//   currentAnim = nextAnim.play()
+// }
+
+function getAnimationMaxIndex(possibleAnims) {
+  // 找到目前动作的index
+  const index = possibleAnims.findIndex(
+    possibleAnim => possibleAnim === currentAnim,
+  )
+  // index 如果是最后一个，那就回到第一个动作
+  if (index === possibleAnims.length - 1) {
+    return index
+  } else {
+    // 下一个动作
+    return index + 1
+  }
+}
 /** 创建光源 */
 function initLight() {
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1)
@@ -327,12 +376,14 @@ function init() {
   initScroll()
   update()
 }
-
-function update() {
+function updateMixer() {
   if (mixer) {
     // 更新动画 根据clock确保不会因为帧率导致动画变快或变慢
     mixer.update(clock.getDelta())
   }
+}
+function update() {
+  updateMixer()
 
   if (resizeRendererToDisplaySize(renderer)) {
     const canvas = renderer.domElement
@@ -368,6 +419,7 @@ function update() {
     mirrorOperations[0].lookAt.y,
     mirrorOperations[0].lookAt.z,
   )
+
   // scrollFn()
   stats.update()
 
@@ -413,7 +465,36 @@ function resizeRendererToDisplaySize(renderer) {
 function getMousePos(e) {
   return { x: e.clientX, y: e.clientY }
 }
-
+function handleActivate() {
+  let currentPossibleAnims = []
+  if (currentPossibleAnimsStatus === 0) {
+    currentPossibleAnims = possibleAnimsIdleRef.value
+    currentPossibleAnimsStatus = 1
+  } else {
+    currentPossibleAnims = possibleAnimsWalkRef.value
+    currentPossibleAnimsStatus = 0
+  }
+  window.currentPossibleAnims = currentPossibleAnims
+  currentAnim.setLoop(THREE.LoopOnce)
+  const _activateId = activateId++
+  function continuousAnimation() {
+    console.log('_activateId', _activateId)
+    const maxIndex = getAnimationMaxIndex(currentPossibleAnims)
+    const maxAnim = currentPossibleAnims[maxIndex]
+    currentAnim.setLoop(THREE.LoopRepeat)
+    currentAnim.stop()
+    if (maxAnim === currentAnim) {
+      mixer.removeEventListener('finished', activateCallback)
+    } else {
+      maxAnim.setLoop(THREE.LoopOnce)
+      currentAnim = maxAnim
+    }
+    currentAnim.play()
+  }
+  mixer.removeEventListener('finished', activateCallback)
+  activateCallback = continuousAnimation
+  mixer.addEventListener('finished', continuousAnimation)
+}
 /**
  * 切换动画
  * @params form 当前执行的动画
@@ -465,13 +546,16 @@ onMounted(() => {
     <div class="wrapper">
       <div ref="statsRef" class="stats"></div>
       <div class="buttons">
-        <div
+        <!-- <div
           v-for="(btn, index) in possibleAnimsRef"
           :key="index"
           class="button"
           @click="palyAnimation(index)"
         >
           <span>{{ btn._clip.name }}</span>
+        </div> -->
+        <div class="button" @click="handleActivate">
+          <span>activate</span>
         </div>
       </div>
       <canvas id="c"></canvas>
