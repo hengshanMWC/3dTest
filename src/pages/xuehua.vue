@@ -5,6 +5,9 @@ import Stats from 'three/addons/libs/stats.module.js'
 
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
 import { onMounted } from 'vue'
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js'
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js'
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js'
 import { Spark } from './spark'
 
 onMounted(() => {
@@ -55,40 +58,63 @@ onMounted(() => {
     )
 
     const sprite1 = textureLoader.load('./beam_177_tex_eff.png', assignSRGB)
+    function initLoader(texture) {
+      const renderScene = new RenderPass(scene, camera)
+      const bloomPass = new UnrealBloomPass(
+        new THREE.Vector2(window.innerWidth, window.innerHeight),
+        1.5,
+        0.4,
+        0.85,
+      )
+      bloomPass.threshold = 0
+      bloomPass.strength = 1.5
+      bloomPass.radius = 0
+      composer = new EffectComposer(renderer)
+      composer.addPass(renderScene)
+      composer.addPass(bloomPass)
+      const box = new THREE.CylinderGeometry(5, 5, 5)
+      const mail = new THREE.MeshBasicMaterial({
+        color: 0x00ff00,
+      })
+      const mesh = new THREE.Mesh(box, mail)
+      // 加入中
+      scene.add(mesh)
+    }
+    initLoader()
 
     parameters = Array.from({ length: 10 }).fill([sprite1, 80])
     window.particlesList = []
-    for (let i = 0; i < parameters.length; i++) {
-      const sprite = parameters[i][0]
-      const size = parameters[i][1]
+    // for (let i = 0; i < parameters.length; i++) {
+    //   const sprite = parameters[i][0]
+    //   const size = parameters[i][1]
 
-      const colors = [new THREE.Color(0xff6700), new THREE.Color(0xffdda0)]
-      materials[i] = new THREE.PointsMaterial({
-        size,
-        map: sprite,
-        blending: THREE.AdditiveBlending,
-        depthTest: false,
-        transparent: true,
-      })
-      materials[i].color.lerpColors(colors[0], colors[1], 0)
+    //   const colors = [new THREE.Color(0xff6700), new THREE.Color(0xffdda0)]
+    //   materials[i] = new THREE.PointsMaterial({
+    //     size,
+    //     map: sprite,
+    //     blending: THREE.AdditiveBlending,
+    //     depthTest: false,
+    //     transparent: true,
+    //   })
+    //   materials[i].color.lerpColors(colors[0], colors[1], 0)
 
-      const particles = new THREE.Points(geometry, materials[i])
+    //   const particles = new THREE.Points(geometry, materials[i])
 
-      particles.position.x =
-        Math.random() * (windowHalfX * 0.5 + windowHalfX * 1.8) -
-        windowHalfX * 1.8
-      // particles.position.x =
-      // Math.random() * (windowHalfX * 2.2) - windowHalfX * 1.8
-      particles.position.y = Math.random() * (windowHalfY + 2) - 2
-      particles.position.z = 1
-      particlesList.push(particles)
-      const spark = new Spark(materials[i], particles)
-      // spark.runLight()
-      // spark.runMove()
-      window.particles = particles
+    //   particles.position.x =
+    //     Math.random() * (windowHalfX * 0.5 + windowHalfX * 1.8) -
+    //     windowHalfX * 1.8
+    //   // particles.position.x =
+    //   // Math.random() * (windowHalfX * 2.2) - windowHalfX * 1.8
+    //   particles.position.y = Math.random() * (windowHalfY + 2) - 2
+    //   particles.position.z = 1
+    //   particlesList.push(particles)
+    //   const spark = new Spark(materials[i], particles)
+    //   // spark.runLight()
+    //   // spark.runMove()
+    //   window.particles = particles
 
-      scene.add(particles)
-    }
+    //   scene.add(particles)
+    // }
     window.materials = materials
     //
 

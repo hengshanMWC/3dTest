@@ -13,7 +13,7 @@ import Lenis from '@studio-freight/lenis'
 import glb from '../asset/model/role03_all.glb'
 import showstandGlb from '../asset/model/role00_showstand_01.glb'
 import mirrorOperations from './mirrorOperations.json'
-import { Spark } from './spark'
+import { Spark, getRandomInRange } from './spark'
 
 const bg = '#333'
 let scene = null // 场景
@@ -33,14 +33,14 @@ const possibleAnimsWalkRef = ref([])
 // 0: walk,1: idle
 let currentPossibleAnimsStatus = 0
 let activateCallback = null
-const sparkArray = []
+const sparks = []
 let mixer = null
 let clock = null
 let mouseX = 0
 let mouseY = 0
 const statsRef = ref(null)
 let stats = null
-const particles = []
+// const particles = []
 const spheres = []
 let effect = null
 let lenis = null
@@ -289,20 +289,31 @@ function getRandomHexColor() {
   return `#${randomColor.toString(16).padStart(6, '0')}`
 }
 function initParticle() {
-  const sphere = new THREE.SphereGeometry(0.2, 8, 4)
+  const sphere = new THREE.SphereGeometry(0.1, 8, 4)
   const intensity = 100
-  for (let i = 0; i < 10; i++) {
-    const bg = getRandomHexColor()
+  const bg = 0xffbb00
+  for (let i = 0; i < 15; i++) {
     const particle = new THREE.PointLight(bg, intensity)
-    particle.add(
-      new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ color: bg })),
-    )
-    particles.push({
-      particle,
-      x: Math.random(),
-      y: Math.random(),
-      z: Math.random(),
+    const material = new THREE.MeshBasicMaterial({
+      color: bg,
+      transparent: true,
     })
+    const mesh = new THREE.Mesh(sphere, material)
+    particle.add(mesh)
+    // particle.position.set(-1, 10, 4)
+    particle.position.set(-90, getRandomInRange(0, -5, 10), 4)
+    // particles.push({
+    //   particle,
+    //   x: Math.random(),
+    //   y: Math.random(),
+    //   z: Math.random(),
+    // })
+
+    const spark = new Spark(camera, material, particle)
+    const options = { delay: i * 0.1 }
+    spark.runLight(options)
+    spark.runMove(options)
+    sparks.push(spark)
     scene.add(particle)
   }
 }
@@ -385,7 +396,7 @@ function init() {
   initFloor()
   initMesh()
   // initBubble()
-  // initParticle()
+  initParticle()
   initLight()
   // initSpark()
 
@@ -437,22 +448,64 @@ function update() {
     mirrorOperations[0].lookAt.z,
   )
 
-  updateSpark()
+  // updateSpark()
   stats.update()
 
   renderer.render(scene, camera)
   requestAnimationFrame(update)
 }
+function isObjectInCameraView(object) {
+  // 初始化 Frustum 对象
+  const frustum = new THREE.Frustum()
 
-function updateParticle() {
-  const time = Date.now() * 0.0005
-  particles.forEach(item => {
-    const x = Math.sin(time * item.x) * 30
-    const y = Math.cos(time * item.y) * 40
-    const z = Math.cos(time * item.z) * 30
-    item.particle.position.set(x, y, z)
-  })
+  // 设置 Frustum 对象的参数为相机的视锥体参数
+  camera.updateMatrix() // 保证相机矩阵最新
+  camera.updateMatrixWorld() // 保证相机矩阵世界最新
+  const matrix = new THREE.Matrix4().multiplyMatrices(
+    camera.projectionMatrix,
+    camera.matrixWorldInverse,
+  )
+  frustum.setFromProjectionMatrix(matrix)
+
+  // 获取物体的包围盒
+  const boundingBox = new THREE.Box3().setFromObject(object)
+
+  // 检查物体的包围盒是否与相机的视锥体相交
+  return frustum.intersectsBox(boundingBox)
 }
+function getCameraViewRange() {
+  // 获取相机的视野角度和投影方式
+  const fov = camera.fov * (Math.PI / 180) // 将角度转换为弧度
+  const aspect = camera.aspect
+  const near = camera.near
+  const far = camera.far
+
+  // 根据视野角度和投影方式计算相机观察的范围
+  const halfHeight = Math.tan(fov / 2) * near
+  const halfWidth = halfHeight * aspect
+  const nearTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -near)
+  const nearBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -near)
+  const farTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -far)
+  const farBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -far)
+
+  // 返回相机观察的范围
+  return {
+    nearTopLeft,
+    nearBottomRight,
+    farTopLeft,
+    farBottomRight,
+  }
+}
+
+// function updateParticle() {
+// const time = Date.now() * 0.0005
+// particles.forEach(item => {
+//   const x = Math.sin(time * item.x) * 30
+//   const y = Math.cos(time * item.y) * 40
+//   const z = Math.cos(time * item.z) * 30
+//   item.particle.position.set(x, y, z)
+// })
+// }
 function updateBubble() {
   const timer = 0.0001 * Date.now()
 
@@ -512,32 +565,32 @@ function handleActivate() {
   activateCallback = continuousAnimation
   mixer.addEventListener('finished', continuousAnimation)
 }
-function initSpark() {
-  const lightTextureLoader = new THREE.TextureLoader()
-  lightTextureLoader.load('./beam_177_tex_eff.png', function (texture) {
-    const lightMaterial = new THREE.PointsMaterial({
-      size: 1,
-      map: texture,
-      transparent: true,
-    })
-    const lightGeometry = new THREE.BufferGeometry()
-    const lightPosition = new THREE.BufferAttribute(
-      new Float32Array([0, 0, 0]),
-      3,
-    ) // 初始位置
-    lightGeometry.setAttribute('position', lightPosition) // 设置光点位置
-    const light = new THREE.Points(lightGeometry, lightMaterial)
-    sparkArray.push(new Spark(lightMaterial, lightPosition, lightGeometry))
-    scene.add(light)
-  })
-}
+// function initSpark() {
+//   const lightTextureLoader = new THREE.TextureLoader()
+//   lightTextureLoader.load('./beam_177_tex_eff.png', function (texture) {
+//     const lightMaterial = new THREE.PointsMaterial({
+//       size: 1,
+//       map: texture,
+//       transparent: true,
+//     })
+//     const lightGeometry = new THREE.BufferGeometry()
+//     const lightPosition = new THREE.BufferAttribute(
+//       new Float32Array([0, 0, 0]),
+//       3,
+//     ) // 初始位置
+//     lightGeometry.setAttribute('position', lightPosition) // 设置光点位置
+//     const light = new THREE.Points(lightGeometry, lightMaterial)
+//     sparkArray.push(new Spark(lightMaterial, lightPosition, lightGeometry))
+//     scene.add(light)
+//   })
+// }
 
-function updateSpark() {
-  sparkArray.forEach(spark => {
-    spark.setPosition()
-    spark.setLight()
-  })
-}
+// function updateSpark() {
+//   sparkArray.forEach(spark => {
+//     spark.setPosition()
+//     spark.setLight()
+//   })
+// }
 /**
  * 切换动画
  * @params form 当前执行的动画
