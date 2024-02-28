@@ -5,17 +5,16 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/addons/libs/stats.module.js'
 import { useEventListener } from '@vueuse/core'
-import { computed, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
 import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
-import { MotionPathPlugin } from 'gsap/MotionPathPlugin'
 import Lenis from '@studio-freight/lenis'
 import glb from '../asset/model/role03_all.glb'
 import showstandGlb from '../asset/model/role00_showstand_01.glb'
 import mirrorOperations from './mirrorOperations.json'
+import { Spark } from './spark'
 
-gsap.registerPlugin(ScrollTrigger, MotionPathPlugin)
 const bg = '#333'
 let scene = null // 场景
 const dimian = -12
@@ -34,7 +33,7 @@ const possibleAnimsWalkRef = ref([])
 // 0: walk,1: idle
 let currentPossibleAnimsStatus = 0
 let activateCallback = null
-const activateId = 0
+const sparkArray = []
 let mixer = null
 let clock = null
 let mouseX = 0
@@ -44,13 +43,17 @@ let stats = null
 const particles = []
 const spheres = []
 let effect = null
+let lenis = null
+function handleLenisScrroll() {
+  ScrollTrigger.update()
+}
 function initSmoothScrolling() {
-  const lenis = new Lenis({
+  lenis = new Lenis({
     lerp: 0.02, // 值越小平滑效果越明显
     smoothWheel: true, // 为鼠标滚轮事件启用平滑滚动
   })
   // 每次用户滚动时更新ScrollTrigger
-  lenis.on('scroll', () => ScrollTrigger.update())
+  lenis.on('scroll', handleLenisScrroll)
   // 每一帧动画执行
   const scrollFn = time => {
     lenis.raf(time) // lenis中requestAnimationFrame方法
@@ -61,8 +64,6 @@ function initSmoothScrolling() {
   requestAnimationFrame(scrollFn)
 }
 // const scrollFn = initSmoothScrolling()
-
-window.mirrorOperations = mirrorOperations
 
 const touched = false
 function onDocumentMouseMove(mousecoords) {
@@ -386,6 +387,7 @@ function init() {
   // initBubble()
   // initParticle()
   initLight()
+  // initSpark()
 
   initStats()
   initScroll()
@@ -435,7 +437,7 @@ function update() {
     mirrorOperations[0].lookAt.z,
   )
 
-  // scrollFn()
+  updateSpark()
   stats.update()
 
   renderer.render(scene, camera)
@@ -510,6 +512,32 @@ function handleActivate() {
   activateCallback = continuousAnimation
   mixer.addEventListener('finished', continuousAnimation)
 }
+function initSpark() {
+  const lightTextureLoader = new THREE.TextureLoader()
+  lightTextureLoader.load('./beam_177_tex_eff.png', function (texture) {
+    const lightMaterial = new THREE.PointsMaterial({
+      size: 1,
+      map: texture,
+      transparent: true,
+    })
+    const lightGeometry = new THREE.BufferGeometry()
+    const lightPosition = new THREE.BufferAttribute(
+      new Float32Array([0, 0, 0]),
+      3,
+    ) // 初始位置
+    lightGeometry.setAttribute('position', lightPosition) // 设置光点位置
+    const light = new THREE.Points(lightGeometry, lightMaterial)
+    sparkArray.push(new Spark(lightMaterial, lightPosition, lightGeometry))
+    scene.add(light)
+  })
+}
+
+function updateSpark() {
+  sparkArray.forEach(spark => {
+    spark.setPosition()
+    spark.setLight()
+  })
+}
 /**
  * 切换动画
  * @params form 当前执行的动画
@@ -545,6 +573,11 @@ function initScroll() {
 onMounted(() => {
   init()
   initSmoothScrolling()
+})
+onBeforeUnmount(() => {
+  cancelAnimationFrame(update)
+  lenis.off('scroll', handleLenisScrroll)
+  scene.remove(...scene.children)
 })
 
 // useEventListener(document, 'mousemove', e => {

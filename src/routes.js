@@ -1,11 +1,13 @@
 import { createRouter, createWebHashHistory } from 'vue-router'
 import jiqiren from './pages/jiqiren.vue'
+import xuehua from './pages/xuehua.vue'
+
 import paomo from './pages/paomo.vue'
 import touming from './pages/touming.vue'
 import gsap from './pages/gsap.vue'
+import webgl_lights_rectarealight from './pages/webgl_lights_rectarealight.vue'
 
 import poker404 from './pages/poker404.vue'
-import { HOME_PAGE_NAME } from './constant'
 
 const routes = [
   {
@@ -13,6 +15,18 @@ const routes = [
     component: poker404,
     name: '3d',
     // hidden: true,
+  },
+  {
+    path: '/webgl_lights_rectarealight',
+    component: webgl_lights_rectarealight,
+    name: 'webgl_lights_rectarealight',
+    // hidden: true,
+  },
+
+  {
+    path: '/xuehua',
+    component: xuehua,
+    name: 'xuehua',
   },
   {
     path: '/jiqiren',
