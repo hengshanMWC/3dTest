@@ -33,7 +33,6 @@ export class Spark {
       x: 80,
       y: getRandomInRange(prevPath.y, -1, 150),
     })
-    console.log('path', path)
     gsap
       .to(this.particle.position, {
         motionPath: {

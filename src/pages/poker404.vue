@@ -12,20 +12,28 @@ import { gsap } from 'gsap'
 import Lenis from '@studio-freight/lenis'
 import glb from '../asset/model/role03_all.glb'
 import showstandGlb from '../asset/model/role00_showstand_01.glb'
-import mirrorOperations from './mirrorOperations.json'
+import { mirrorOperations } from './mirrorOperations'
 import { Spark, getRandomInRange } from './spark'
 
 const bg = '#333'
 let scene = null // 场景
-const dimian = -12
+const dimian = -6
 let camera = null // 相机
 // const material = null // 材质
 let renderer = null // 渲染器对象
 let controls = null //
 let currentAnim = null
 let model = null
+const mirrorOperationsIndex = 0
+const currentCameraLookAt = JSON.parse(
+  JSON.stringify(mirrorOperations[mirrorOperationsIndex].lookAt),
+)
+const currentCameraPosition = JSON.parse(
+  JSON.stringify(mirrorOperations[mirrorOperationsIndex].position),
+)
+window.currentCameraPosition = currentCameraPosition
+window.currentCameraLookAt = currentCameraLookAt
 
-const possibleAnimsRef = ref([])
 // 按键以后甩剑并进入站立idle
 const possibleAnimsIdleRef = ref([])
 // 再按键通过walk_read回到walk(走路)的状态
@@ -49,7 +57,7 @@ function handleLenisScrroll() {
 }
 function initSmoothScrolling() {
   lenis = new Lenis({
-    lerp: 0.02, // 值越小平滑效果越明显
+    lerp: 0.01, // 值越小平滑效果越明显
     smoothWheel: true, // 为鼠标滚轮事件启用平滑滚动
   })
   // 每次用户滚动时更新ScrollTrigger
@@ -63,7 +71,6 @@ function initSmoothScrolling() {
   // 启用动画帧
   requestAnimationFrame(scrollFn)
 }
-// const scrollFn = initSmoothScrolling()
 
 const touched = false
 function onDocumentMouseMove(mousecoords) {
@@ -86,15 +93,16 @@ function initCamera() {
     1,
     // 100,
   )
-  // camera.setFocalLength(85)
-  const position = mirrorOperations[0].position
-  // const lookAt = mirrorOperations[0].lookAt
-  camera.position.set(position.x, position.y, position.z)
-  // camera.lookAt(lookAt.x, lookAt.y, lookAt.z)
-  // camera.rotation.set(...cameraRotation)
-  // const helper = new THREE.CameraHelper(camera)
-  // scene.add(helper)
+  setCameraPosition()
   window.camera = camera
+}
+
+function setCameraPosition() {
+  camera.position.set(
+    currentCameraPosition.x,
+    currentCameraPosition.y,
+    currentCameraPosition.z,
+  )
 }
 
 /** 创建渲染器 */
@@ -169,13 +177,6 @@ function initMesh() {
         // clip.setLoop(THREE.LoopOnce)
         return clip
       })
-      console.log('possibleAnims', possibleAnims)
-      possibleAnimsRef.value = [
-        possibleAnims[1],
-        possibleAnims[3],
-        possibleAnims[0],
-        possibleAnims[2],
-      ]
       /**
        * 初始为走路
        * 按键以后甩剑并进入站立idle
@@ -183,17 +184,12 @@ function initMesh() {
        * walk  -  walk_swor  -  idle  -  walk_read  - walk
        */
       // 按键以后甩剑并进入站立idle
-      possibleAnimsIdleRef.value = window.possibleAnimsIdleRef = [
-        possibleAnims[3],
-        possibleAnims[0],
-      ]
+      possibleAnimsIdleRef.value = [possibleAnims[3], possibleAnims[0]]
       // 再按键通过walk_read回到walk(走路)的状态
-      possibleAnimsWalkRef.value = window.possibleAnimsWalkRef = [
-        possibleAnims[2],
-        possibleAnims[1],
-      ]
+      possibleAnimsWalkRef.value = [possibleAnims[2], possibleAnims[1]]
+
       // 初始为走路
-      window.vv = currentAnim = possibleAnimsWalkRef.value[1]
+      currentAnim = possibleAnimsWalkRef.value[1]
       currentAnim.play() // 播放空闲动画
       // mixer.addEventListener('finished', continuousAnimation)
     },
@@ -372,9 +368,10 @@ function initFloor() {
   const loader = new GLTFLoader()
   loader.load(showstandGlb, function (gltf) {
     const ground = gltf.scene
+    const scale = 4
     // 调整地面位置和缩放
     ground.position.set(0, dimian + 1, 0)
-    ground.scale.set(3, 3, 3) // 根据需要调整缩放
+    ground.scale.set(scale, scale, scale) // 根据需要调整缩放
     window.ground = ground
     scene.add(ground)
   })
@@ -390,7 +387,6 @@ function init() {
   initScene()
   initCamera()
   initRenderer()
-  // initControls()
 
   clock = new THREE.Clock()
   initFloor()
@@ -401,7 +397,9 @@ function init() {
   // initSpark()
 
   initStats()
+  // initControls()
   initScroll()
+  initSmoothScrolling()
   update()
 }
 function updateMixer() {
@@ -443,10 +441,11 @@ function update() {
   // }
   // camera.rotation.set(...cameraRotation1)
   camera.lookAt(
-    mirrorOperations[0].lookAt.x,
-    mirrorOperations[0].lookAt.y,
-    mirrorOperations[0].lookAt.z,
+    currentCameraLookAt.x,
+    currentCameraLookAt.y,
+    currentCameraLookAt.z,
   )
+  setCameraPosition()
 
   // updateSpark()
   stats.update()
@@ -609,27 +608,74 @@ function handleActivate() {
 // }
 
 function initScroll() {
-  gsap.to(camera.position, {
-    motionPath: {
-      path: mirrorOperations.map(item => item.position).slice(1),
-    },
+  const options = {
+    ease: 'none',
     scrollTrigger: {
       trigger: '.box2',
       start: 'top bottom',
       end: 'bottom bottom',
       scrub: true,
-      // markers: true,
+      markers: true,
       id: 'scrub',
     },
+  }
+  const tlLookAt = gsap.timeline(options)
+  const tlPosition = gsap.timeline(options)
+  mirrorOperations.forEach(mirrorOperation => {
+    tlLookAt.to(currentCameraLookAt, {
+      ...mirrorOperation.lookAt,
+    })
+    tlPosition.to(currentCameraPosition, {
+      ...mirrorOperation.position,
+    })
   })
+  // gsap.to(currentCameraLookAt, {
+  //   ...options,
+  //   motionPath: {
+  //     path: mirrorOperations.map(item => item.lookAt).slice(1),
+  //     // path: [mirrorOperations[1].lookAt],
+  //   },
+  // })
+
+  // gsap.to(currentCameraPosition, {
+  //   ...options,
+  //   motionPath: {
+  //     path: mirrorOperations.map(item => item.position).slice(1),
+  //     // path: [mirrorOperations[1].position],
+  //   },
+  // })
+
+  // const options2 = {
+  //   scrollTrigger: {
+  //     trigger: '.box2',
+  //     start: 'top 205%',
+  //     end: 'top 105%',
+  //     scrub: true,
+  //     markers: true,
+  //     id: 'scrub',
+  //   },
+  // }
+  // gsap.to(lookAt, {
+  //   ...options2,
+  //   motionPath: {
+  //     // path: mirrorOperations.map(item => item.lookAt).slice(1),
+  //     path: [mirrorOperations[2].lookAt],
+  //   },
+  // })
+  // gsap.to(camera.position, {
+  //   ...options2,
+  //   motionPath: {
+  //     // path: mirrorOperations.map(item => item.position).slice(1),
+  //     path: [mirrorOperations[2].position],
+  //   },
+  // })
 }
 onMounted(() => {
   init()
-  initSmoothScrolling()
 })
 onBeforeUnmount(() => {
   cancelAnimationFrame(update)
-  lenis.off('scroll', handleLenisScrroll)
+  // lenis.off('scroll', handleLenisScrroll)
   scene.remove(...scene.children)
 })
 
@@ -662,9 +708,9 @@ onBeforeUnmount(() => {
       <canvas id="c"></canvas>
     </div>
     <div class="footer">
-      <div style="height: 100vh; background-color: aqua" class="box1"></div>
+      <!-- <div style="height: 100vh; background-color: aqua" class="box1"></div> -->
       <div style="height: 7000px; background-color: aqua" class="box2"></div>
-      <div style="position: relative; z-index: 1; height: 50vh">你好</div>
+      <!-- <div style="position: relative; z-index: 1; height: 50vh">你好</div> -->
     </div>
   </div>
 </template>
