@@ -5,25 +5,19 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/addons/libs/stats.module.js'
 
-// import { useEventListener } from '@vueuse/core'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
 
-// import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
 import Lenis from '@studio-freight/lenis'
 import glb from '../asset/model/role03_all.glb'
 
-// import showstandGlb from '../asset/model/role00_showstand_01.glb'
 import { mirrorOperations } from './mirrorOperations'
-
-// import { Spark, getRandomInRange } from './spark'
 
 const bg = '#333'
 let scene = null // 场景
 const dimian = -5
 let camera = null // 相机
-// const material = null // 材质
 let renderer = null // 渲染器对象
 let controls = null //
 let currentAnim = null
@@ -46,16 +40,11 @@ const possibleAnimsWalkRef = ref([])
 // 0: walk,1: idle
 let currentPossibleAnimsStatus = 0
 let activateCallback = null
-const sparks = []
 let mixer = null
 let clock = null
-// let mouseX = 0
-// let mouseY = 0
 const statsRef = ref(null)
 let stats = null
 const particles = []
-// const spheres = []
-// let effect = null
 let lenis = null
 function handleLenisScrroll() {
   ScrollTrigger.update()
@@ -75,12 +64,6 @@ function initSmoothScrolling() {
   // return scrollFn
   // 启用动画帧
   requestAnimationFrame(scrollFn)
-}
-
-const touched = false
-function onDocumentMouseMove(mousecoords) {
-  mouseX = mousecoords.x
-  mouseY = mousecoords.y
 }
 
 /** 创建场景 */
@@ -135,21 +118,7 @@ function initControls() {
 function initMesh() {
   const loader = new GLTFLoader()
 
-  // 加载纹理贴图
-  // const texture = new THREE.TextureLoader().load(
-  //   'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy.jpg',
-  // )
-  // texture.flipY = false
-
-  /** 材质对象 */
-  // material = new THREE.MeshPhongMaterial({
-  //   map: texture,
-  //   color: 0xffffff,
-  //   skinning: true,
-  // })
-
   loader.load(
-    // 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb',
     glb,
     gltf => {
       window.model = model = gltf.scene
@@ -204,12 +173,6 @@ function initMesh() {
     },
   )
 }
-
-// function continuousAnimation() {
-//   const nextAnim = getAnimationLoopNext()
-//   currentAnim.stop()
-//   currentAnim = nextAnim.play()
-// }
 
 function getAnimationMaxIndex(possibleAnims) {
   // 找到目前动作的index
@@ -303,12 +266,6 @@ function initLight() {
   scene.add(dirLightVerso)
 }
 
-// function getRandomHexColor() {
-//   // 生成一个随机的0到16777215之间的整数
-//   const randomColor = Math.floor(Math.random() * 16777215)
-//   // 将整数转换为十六进制，并在开头补零以确保是六位颜色代码
-//   return `#${randomColor.toString(16).padStart(6, '0')}`
-// }
 function initGroundParticle() {
   const sphere = new THREE.SphereGeometry(0.2, 8, 4)
   const intensity = 100
@@ -327,71 +284,6 @@ function initGroundParticle() {
     scene.add(particle)
   }
 }
-// function initParticle() {
-//   const sphere = new THREE.SphereGeometry(0.1, 8, 4)
-//   const intensity = 100
-//   const bg = 0xf5bc6a
-//   for (let i = 0; i < 15; i++) {
-//     const particle = new THREE.PointLight(bg, intensity)
-//     const material = new THREE.MeshBasicMaterial({
-//       color: bg,
-//       transparent: true,
-//     })
-//     const mesh = new THREE.Mesh(sphere, material)
-//     particle.add(mesh)
-//     // particle.position.set(-1, 10, 4)
-//     particle.position.set(-90, getRandomInRange(0, -5, 10), 4)
-//     // particles.push({
-//     //   particle,
-//     //   x: Math.random(),
-//     //   y: Math.random(),
-//     //   z: Math.random(),
-//     // })
-
-//     const spark = new Spark(camera, material, particle)
-//     const options = { delay: i * 0.1 }
-//     spark.runLight(options)
-//     spark.runMove(options)
-//     sparks.push(spark)
-//     scene.add(particle)
-//   }
-// }
-// function initBubble() {
-//   const path = './cube/pisa/'
-//   const format = '.png'
-//   const urls = [
-//     `${path}px${format}`,
-//     `${path}nx${format}`,
-//     `${path}py${format}`,
-//     `${path}ny${format}`,
-//     `${path}pz${format}`,
-//     `${path}nz${format}`,
-//   ]
-//   const textureCube = new THREE.CubeTextureLoader().load(urls)
-//   const geometry = new THREE.SphereGeometry(0.2, 32, 16)
-//   const material = new THREE.MeshBasicMaterial({
-//     color: 0xffffff,
-//     envMap: textureCube,
-//   })
-
-//   for (let i = 0; i < 5; i++) {
-//     const mesh = new THREE.Mesh(geometry, material)
-
-//     mesh.position.x = Math.random() * 10 - 5
-//     mesh.position.y = Math.random() * 10 - 5
-//     mesh.position.z = Math.random() * 10 - 5
-
-//     mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1
-
-//     scene.add(mesh)
-
-//     spheres.push(mesh)
-//   }
-//   const width = window.innerWidth || 2
-//   const height = window.innerHeight || 2
-//   effect = new AnaglyphEffect(renderer)
-//   effect.setSize(width, height)
-// }
 
 /** 创建地面 */
 function initFloor() {
@@ -434,11 +326,8 @@ function init() {
   clock = new THREE.Clock()
   initFloor()
   initMesh()
-  // initBubble()
-  // initParticle()
   initGroundParticle()
   initLight()
-  // initSpark()
 
   initStats()
   // initControls()
@@ -460,30 +349,6 @@ function update() {
     camera.aspect = canvas.clientWidth / canvas.clientHeight
     camera.updateProjectionMatrix() // 重新计算相机对象的投影矩阵值
   }
-  // if (touched) {
-  //   const innerWidthCenter = window.innerWidth / 2
-  //   const innerHeightCenter = window.innerHeight / 2
-  //   camera.position.x =
-  //     ((mouseX - innerWidthCenter) * cameraXYZ[0]) / 200 + cameraXYZ[0]
-  //   camera.position.y =
-  //     ((mouseY - innerHeightCenter) * cameraXYZ[1]) / 1500 + cameraXYZ[1]
-  // }
-  // 计算相机位置
-  // camera.position.x = radius * Math.sin(angle)
-  // camera.position.z = radius * Math.cos(angle)
-  // camera.lookAt(cube.position)
-
-  // 增加角度，使相机绕着立方体旋转
-  // angle += rotationSpeed
-  // updateBubble()
-  // updateParticle()
-  // camera.lookAt(scene.position)
-  // if (model) {
-  //   camera.lookAt(model.position)
-  // } else {
-  //   camera.lookAt(scene.position)
-  // }
-  // camera.rotation.set(...cameraRotation1)
   updateGroundParticle()
   camera.lookAt(
     currentCameraLookAt.x,
@@ -498,48 +363,6 @@ function update() {
   renderer.render(scene, camera)
   requestAnimationFrame(update)
 }
-// function isObjectInCameraView(object) {
-//   // 初始化 Frustum 对象
-//   const frustum = new THREE.Frustum()
-
-//   // 设置 Frustum 对象的参数为相机的视锥体参数
-//   camera.updateMatrix() // 保证相机矩阵最新
-//   camera.updateMatrixWorld() // 保证相机矩阵世界最新
-//   const matrix = new THREE.Matrix4().multiplyMatrices(
-//     camera.projectionMatrix,
-//     camera.matrixWorldInverse,
-//   )
-//   frustum.setFromProjectionMatrix(matrix)
-
-//   // 获取物体的包围盒
-//   const boundingBox = new THREE.Box3().setFromObject(object)
-
-//   // 检查物体的包围盒是否与相机的视锥体相交
-//   return frustum.intersectsBox(boundingBox)
-// }
-// function getCameraViewRange() {
-//   // 获取相机的视野角度和投影方式
-//   const fov = camera.fov * (Math.PI / 180) // 将角度转换为弧度
-//   const aspect = camera.aspect
-//   const near = camera.near
-//   const far = camera.far
-
-//   // 根据视野角度和投影方式计算相机观察的范围
-//   const halfHeight = Math.tan(fov / 2) * near
-//   const halfWidth = halfHeight * aspect
-//   const nearTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -near)
-//   const nearBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -near)
-//   const farTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -far)
-//   const farBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -far)
-
-//   // 返回相机观察的范围
-//   return {
-//     nearTopLeft,
-//     nearBottomRight,
-//     farTopLeft,
-//     farBottomRight,
-//   }
-// }
 
 function updateGroundParticle() {
   const time = Date.now() * 0.0005
@@ -550,18 +373,6 @@ function updateGroundParticle() {
     item.particle.position.set(x, y, z)
   })
 }
-// function updateBubble() {
-//   const timer = 0.0001 * Date.now()
-
-//   for (let i = 0, il = spheres.length; i < il; i++) {
-//     const sphere = spheres[i]
-
-//     sphere.position.x = 11 * Math.cos(timer + i)
-//     sphere.position.y = 11 * Math.sin(timer + i * 1.1)
-//   }
-
-//   effect.render(scene, camera)
-// }
 function resizeRendererToDisplaySize(renderer) {
   const canvas = renderer.domElement
   const width = window.innerWidth
@@ -576,9 +387,6 @@ function resizeRendererToDisplaySize(renderer) {
   return needResize
 }
 
-function getMousePos(e) {
-  return { x: e.clientX, y: e.clientY }
-}
 function handleActivate() {
   let currentPossibleAnims = []
   if (currentPossibleAnimsStatus === 0) {
@@ -609,48 +417,6 @@ function handleActivate() {
   activateCallback = continuousAnimation
   mixer.addEventListener('finished', continuousAnimation)
 }
-// function initSpark() {
-//   const lightTextureLoader = new THREE.TextureLoader()
-//   lightTextureLoader.load('./beam_177_tex_eff.png', function (texture) {
-//     const lightMaterial = new THREE.PointsMaterial({
-//       size: 1,
-//       map: texture,
-//       transparent: true,
-//     })
-//     const lightGeometry = new THREE.BufferGeometry()
-//     const lightPosition = new THREE.BufferAttribute(
-//       new Float32Array([0, 0, 0]),
-//       3,
-//     ) // 初始位置
-//     lightGeometry.setAttribute('position', lightPosition) // 设置光点位置
-//     const light = new THREE.Points(lightGeometry, lightMaterial)
-//     sparkArray.push(new Spark(lightMaterial, lightPosition, lightGeometry))
-//     scene.add(light)
-//   })
-// }
-
-// function updateSpark() {
-//   sparkArray.forEach(spark => {
-//     spark.setPosition()
-//     spark.setLight()
-//   })
-// }
-/**
- * 切换动画
- * @params form 当前执行的动画
- * @params fSpeed 当前动画过度到下一个动画的时间
- * @params to 下一个要执行的动画
- * @params tSpeed 下一个动画执行完成后回到当前动画的时间
- */
-// function playModifierAnimation(to) {
-//   if (to === currentAnim) return
-//   currentAnim.stop()
-//   currentAnim = to
-//   to.play()
-// }
-// function palyAnimation(index) {
-//   playModifierAnimation(possibleAnimsRef.value[index])
-// }
 
 function initScroll() {
   const options = {
@@ -674,27 +440,6 @@ function initScroll() {
       ...mirrorOperation.position,
     })
   })
-  // tlPosition
-  //   .to(camera.position, {
-  //     motionPath: [mirrorOperations[1].position],
-  //   })
-  //   .to(camera.position, {
-  //     motionPath: mirrorOperations.map(item => item.position).slice(1),
-  //   })
-
-  // gsap.to(camera.position, {
-  //   motionPath: {
-  //     path: mirrorOperations.map(item => item.position).slice(1),
-  //   },
-  //   scrollTrigger: {
-  //     trigger: '.box2',
-  //     start: 'top bottom',
-  //     end: 'bottom bottom',
-  //     scrub: true,
-  //     // markers: true,
-  //     id: 'scrub',
-  //   },
-  // })
 }
 onMounted(() => {
   init()
@@ -704,14 +449,6 @@ onBeforeUnmount(() => {
   lenis.off('scroll', handleLenisScrroll)
   scene.remove(...scene.children)
 })
-
-// useEventListener(document, 'mousemove', e => {
-//   touched = true
-//   const mousecoords = getMousePos(e)
-//   onDocumentMouseMove(mousecoords)
-// })
-
-// // You can use a ScrollTrigger in a tween or timeline
 </script>
 
 <template>
