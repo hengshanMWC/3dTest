@@ -28,6 +28,7 @@ let renderer = null // 渲染器对象
 let controls = null //
 let currentAnim = null
 let model = null
+const isHelp = false
 const mirrorOperationsIndex = 0
 const currentCameraLookAt = JSON.parse(
   JSON.stringify(mirrorOperations[mirrorOperationsIndex].lookAt),
@@ -249,8 +250,10 @@ function initLight() {
   targetLeftObject.position.set(0, 0, -3)
   window.targetLeftObject = targetLeftObject
   dirLightLeft.target = targetLeftObject
-  const helperLeft = new THREE.DirectionalLightHelper(dirLightLeft, 1)
-  scene.add(helperLeft)
+  if (isHelp) {
+    const helperLeft = new THREE.DirectionalLightHelper(dirLightLeft, 1)
+    scene.add(helperLeft)
+  }
   scene.add(targetLeftObject)
   scene.add(dirLightLeft)
   // 右黄光
@@ -263,9 +266,10 @@ function initLight() {
   scene.add(targetRightObject)
 
   dirRightFront.target = targetRightObject
-
-  const helperRight = new THREE.DirectionalLightHelper(dirRightFront, 1)
-  scene.add(helperRight)
+  if (isHelp) {
+    const helperRight = new THREE.DirectionalLightHelper(dirRightFront, 1)
+    scene.add(helperRight)
+  }
   scene.add(dirRightFront)
   // 正面光
   const dirLightFront = new THREE.DirectionalLight(0xeebe8f, 5)
@@ -277,9 +281,10 @@ function initLight() {
   scene.add(targetFrontObject)
 
   dirLightFront.target = targetFrontObject
-
-  const helperFront = new THREE.DirectionalLightHelper(dirLightFront, 1)
-  scene.add(helperFront)
+  if (isHelp) {
+    const helperFront = new THREE.DirectionalLightHelper(dirLightFront, 1)
+    scene.add(helperFront)
+  }
   scene.add(dirLightFront)
   // 背面光
   const dirLightVerso = new THREE.DirectionalLight(0x50b2df, 1)
@@ -291,9 +296,10 @@ function initLight() {
   scene.add(targetVersoObject)
 
   dirLightVerso.target = targetVersoObject
-
-  const helperVerson = new THREE.DirectionalLightHelper(dirLightVerso, 1)
-  scene.add(helperVerson)
+  if (isHelp) {
+    const helperVerson = new THREE.DirectionalLightHelper(dirLightVerso, 1)
+    scene.add(helperVerson)
+  }
   scene.add(dirLightVerso)
 }
 
@@ -654,7 +660,7 @@ function initScroll() {
       start: 'top bottom',
       end: 'bottom bottom',
       scrub: true,
-      markers: true,
+      // markers: true,
       id: 'scrub',
     },
   }
