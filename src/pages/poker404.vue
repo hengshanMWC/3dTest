@@ -4,20 +4,24 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/addons/libs/stats.module.js'
-import { useEventListener } from '@vueuse/core'
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
-import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
+
+// import { useEventListener } from '@vueuse/core'
+import { onBeforeUnmount, onMounted, ref } from 'vue'
+
+// import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
 import Lenis from '@studio-freight/lenis'
 import glb from '../asset/model/role03_all.glb'
-import showstandGlb from '../asset/model/role00_showstand_01.glb'
+
+// import showstandGlb from '../asset/model/role00_showstand_01.glb'
 import { mirrorOperations } from './mirrorOperations'
-import { Spark, getRandomInRange } from './spark'
+
+// import { Spark, getRandomInRange } from './spark'
 
 const bg = '#333'
 let scene = null // 场景
-const dimian = -6
+const dimian = -5
 let camera = null // 相机
 // const material = null // 材质
 let renderer = null // 渲染器对象
@@ -44,13 +48,13 @@ let activateCallback = null
 const sparks = []
 let mixer = null
 let clock = null
-let mouseX = 0
-let mouseY = 0
+// let mouseX = 0
+// let mouseY = 0
 const statsRef = ref(null)
 let stats = null
-// const particles = []
-const spheres = []
-let effect = null
+const particles = []
+// const spheres = []
+// let effect = null
 let lenis = null
 function handleLenisScrroll() {
   ScrollTrigger.update()
@@ -159,7 +163,7 @@ function initMesh() {
       })
 
       model.scale.set(10, 10, 10)
-      model.position.y = dimian + 1
+      model.position.y = dimian
 
       scene.add(model)
 
@@ -238,18 +242,33 @@ function initLight() {
   dirLightShadow.shadow.camera.bottom = d * -1
   scene.add(dirLightShadow)
   // 左光
-  const dirLightLeft = new THREE.DirectionalLight(0x5786cf, 3)
+  const dirLightLeft = new THREE.DirectionalLight(0x50b2df, 3)
   window.dirLightLeft = dirLightLeft
-  dirLightLeft.position.set(-7, 0, 1)
+  dirLightLeft.position.set(-7, 0, 3)
   const targetLeftObject = new THREE.Object3D()
-  targetLeftObject.position.set(6, 7, 3)
+  targetLeftObject.position.set(0, 0, -3)
   window.targetLeftObject = targetLeftObject
-  // const helperLeft = new THREE.DirectionalLightHelper(dirLightLeft, 1)
-  // scene.add(helperLeft)
+  dirLightLeft.target = targetLeftObject
+  const helperLeft = new THREE.DirectionalLightHelper(dirLightLeft, 1)
+  scene.add(helperLeft)
   scene.add(targetLeftObject)
   scene.add(dirLightLeft)
+  // 右黄光
+  const dirRightFront = new THREE.DirectionalLight(0xf5b768, 10)
+  window.dirRightFront = dirRightFront
+  dirRightFront.position.set(7, 5, 0)
+  const targetRightObject = new THREE.Object3D()
+  targetRightObject.position.set(0, 5, 2)
+  window.targetRightObject = targetRightObject
+  scene.add(targetRightObject)
+
+  dirRightFront.target = targetRightObject
+
+  const helperRight = new THREE.DirectionalLightHelper(dirRightFront, 1)
+  scene.add(helperRight)
+  scene.add(dirRightFront)
   // 正面光
-  const dirLightFront = new THREE.DirectionalLight(0xeebe8f, 8)
+  const dirLightFront = new THREE.DirectionalLight(0xeebe8f, 5)
   window.dirLightFront = dirLightFront
   dirLightFront.position.set(5, 7, 5)
   const targetFrontObject = new THREE.Object3D()
@@ -259,96 +278,114 @@ function initLight() {
 
   dirLightFront.target = targetFrontObject
 
-  // const helperFront = new THREE.DirectionalLightHelper(dirLightFront, 1)
-  // scene.add(helperFront)
+  const helperFront = new THREE.DirectionalLightHelper(dirLightFront, 1)
+  scene.add(helperFront)
   scene.add(dirLightFront)
   // 背面光
-  const dirLightVerso = new THREE.DirectionalLight(0xeebe8f, 6)
+  const dirLightVerso = new THREE.DirectionalLight(0x50b2df, 1)
   window.dirLightVerso = dirLightVerso
   dirLightVerso.position.set(0, 4, -8)
   const targetVersoObject = new THREE.Object3D()
-  targetVersoObject.position.set(0, 4, 0)
+  targetVersoObject.position.set(6, 4, 0)
   window.targetVersoObject = targetVersoObject
   scene.add(targetVersoObject)
 
   dirLightVerso.target = targetVersoObject
 
-  // const helperVerson = new THREE.DirectionalLightHelper(dirLightVerso, 1)
-  // scene.add(helperVerson)
+  const helperVerson = new THREE.DirectionalLightHelper(dirLightVerso, 1)
+  scene.add(helperVerson)
   scene.add(dirLightVerso)
 }
 
-function getRandomHexColor() {
-  // 生成一个随机的0到16777215之间的整数
-  const randomColor = Math.floor(Math.random() * 16777215)
-  // 将整数转换为十六进制，并在开头补零以确保是六位颜色代码
-  return `#${randomColor.toString(16).padStart(6, '0')}`
-}
-function initParticle() {
-  const sphere = new THREE.SphereGeometry(0.1, 8, 4)
+// function getRandomHexColor() {
+//   // 生成一个随机的0到16777215之间的整数
+//   const randomColor = Math.floor(Math.random() * 16777215)
+//   // 将整数转换为十六进制，并在开头补零以确保是六位颜色代码
+//   return `#${randomColor.toString(16).padStart(6, '0')}`
+// }
+function initGroundParticle() {
+  const sphere = new THREE.SphereGeometry(0.2, 8, 4)
   const intensity = 100
-  const bg = 0xffbb00
-  for (let i = 0; i < 15; i++) {
+  const bg = 0xf5bc6a
+  for (let i = 0; i < 10; i++) {
     const particle = new THREE.PointLight(bg, intensity)
-    const material = new THREE.MeshBasicMaterial({
-      color: bg,
-      transparent: true,
+    particle.add(
+      new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ color: bg })),
+    )
+    particles.push({
+      particle,
+      x: Math.random(),
+      y: Math.random(),
+      z: Math.random(),
     })
-    const mesh = new THREE.Mesh(sphere, material)
-    particle.add(mesh)
-    // particle.position.set(-1, 10, 4)
-    particle.position.set(-90, getRandomInRange(0, -5, 10), 4)
-    // particles.push({
-    //   particle,
-    //   x: Math.random(),
-    //   y: Math.random(),
-    //   z: Math.random(),
-    // })
-
-    const spark = new Spark(camera, material, particle)
-    const options = { delay: i * 0.1 }
-    spark.runLight(options)
-    spark.runMove(options)
-    sparks.push(spark)
     scene.add(particle)
   }
 }
-function initBubble() {
-  const path = './cube/pisa/'
-  const format = '.png'
-  const urls = [
-    `${path}px${format}`,
-    `${path}nx${format}`,
-    `${path}py${format}`,
-    `${path}ny${format}`,
-    `${path}pz${format}`,
-    `${path}nz${format}`,
-  ]
-  const textureCube = new THREE.CubeTextureLoader().load(urls)
-  const geometry = new THREE.SphereGeometry(0.2, 32, 16)
-  const material = new THREE.MeshBasicMaterial({
-    color: 0xffffff,
-    envMap: textureCube,
-  })
+// function initParticle() {
+//   const sphere = new THREE.SphereGeometry(0.1, 8, 4)
+//   const intensity = 100
+//   const bg = 0xf5bc6a
+//   for (let i = 0; i < 15; i++) {
+//     const particle = new THREE.PointLight(bg, intensity)
+//     const material = new THREE.MeshBasicMaterial({
+//       color: bg,
+//       transparent: true,
+//     })
+//     const mesh = new THREE.Mesh(sphere, material)
+//     particle.add(mesh)
+//     // particle.position.set(-1, 10, 4)
+//     particle.position.set(-90, getRandomInRange(0, -5, 10), 4)
+//     // particles.push({
+//     //   particle,
+//     //   x: Math.random(),
+//     //   y: Math.random(),
+//     //   z: Math.random(),
+//     // })
 
-  for (let i = 0; i < 5; i++) {
-    const mesh = new THREE.Mesh(geometry, material)
+//     const spark = new Spark(camera, material, particle)
+//     const options = { delay: i * 0.1 }
+//     spark.runLight(options)
+//     spark.runMove(options)
+//     sparks.push(spark)
+//     scene.add(particle)
+//   }
+// }
+// function initBubble() {
+//   const path = './cube/pisa/'
+//   const format = '.png'
+//   const urls = [
+//     `${path}px${format}`,
+//     `${path}nx${format}`,
+//     `${path}py${format}`,
+//     `${path}ny${format}`,
+//     `${path}pz${format}`,
+//     `${path}nz${format}`,
+//   ]
+//   const textureCube = new THREE.CubeTextureLoader().load(urls)
+//   const geometry = new THREE.SphereGeometry(0.2, 32, 16)
+//   const material = new THREE.MeshBasicMaterial({
+//     color: 0xffffff,
+//     envMap: textureCube,
+//   })
 
-    mesh.position.x = Math.random() * 10 - 5
-    mesh.position.y = Math.random() * 10 - 5
-    mesh.position.z = Math.random() * 10 - 5
+//   for (let i = 0; i < 5; i++) {
+//     const mesh = new THREE.Mesh(geometry, material)
 
-    mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1
+//     mesh.position.x = Math.random() * 10 - 5
+//     mesh.position.y = Math.random() * 10 - 5
+//     mesh.position.z = Math.random() * 10 - 5
 
-    scene.add(mesh)
+//     mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1
 
-    spheres.push(mesh)
-  }
-  const width = window.innerWidth || 2
-  const height = window.innerHeight || 2
-  effect = new AnaglyphEffect(renderer)
-  effect.setSize(width, height)
-}
+//     scene.add(mesh)
+
+//     spheres.push(mesh)
+//   }
+//   const width = window.innerWidth || 2
+//   const height = window.innerHeight || 2
+//   effect = new AnaglyphEffect(renderer)
+//   effect.setSize(width, height)
+// }
 
 /** 创建地面 */
 function initFloor() {
@@ -365,16 +402,16 @@ function initFloor() {
   scene.add(floor)
 
   // 加载GLB模型作为地面
-  const loader = new GLTFLoader()
-  loader.load(showstandGlb, function (gltf) {
-    const ground = gltf.scene
-    const scale = 4
-    // 调整地面位置和缩放
-    ground.position.set(0, dimian + 1, 0)
-    ground.scale.set(scale, scale, scale) // 根据需要调整缩放
-    window.ground = ground
-    scene.add(ground)
-  })
+  // const loader = new GLTFLoader()
+  // loader.load(showstandGlb, function (gltf) {
+  //   const ground = gltf.scene
+  //   const scale = 4
+  //   // 调整地面位置和缩放
+  //   ground.position.set(0, dimian + 1, 0)
+  //   ground.scale.set(scale, scale, scale) // 根据需要调整缩放
+  //   window.ground = ground
+  //   scene.add(ground)
+  // })
 }
 
 function initStats() {
@@ -392,7 +429,8 @@ function init() {
   initFloor()
   initMesh()
   // initBubble()
-  initParticle()
+  // initParticle()
+  initGroundParticle()
   initLight()
   // initSpark()
 
@@ -440,6 +478,7 @@ function update() {
   //   camera.lookAt(scene.position)
   // }
   // camera.rotation.set(...cameraRotation1)
+  updateGroundParticle()
   camera.lookAt(
     currentCameraLookAt.x,
     currentCameraLookAt.y,
@@ -453,70 +492,70 @@ function update() {
   renderer.render(scene, camera)
   requestAnimationFrame(update)
 }
-function isObjectInCameraView(object) {
-  // 初始化 Frustum 对象
-  const frustum = new THREE.Frustum()
+// function isObjectInCameraView(object) {
+//   // 初始化 Frustum 对象
+//   const frustum = new THREE.Frustum()
 
-  // 设置 Frustum 对象的参数为相机的视锥体参数
-  camera.updateMatrix() // 保证相机矩阵最新
-  camera.updateMatrixWorld() // 保证相机矩阵世界最新
-  const matrix = new THREE.Matrix4().multiplyMatrices(
-    camera.projectionMatrix,
-    camera.matrixWorldInverse,
-  )
-  frustum.setFromProjectionMatrix(matrix)
+//   // 设置 Frustum 对象的参数为相机的视锥体参数
+//   camera.updateMatrix() // 保证相机矩阵最新
+//   camera.updateMatrixWorld() // 保证相机矩阵世界最新
+//   const matrix = new THREE.Matrix4().multiplyMatrices(
+//     camera.projectionMatrix,
+//     camera.matrixWorldInverse,
+//   )
+//   frustum.setFromProjectionMatrix(matrix)
 
-  // 获取物体的包围盒
-  const boundingBox = new THREE.Box3().setFromObject(object)
+//   // 获取物体的包围盒
+//   const boundingBox = new THREE.Box3().setFromObject(object)
 
-  // 检查物体的包围盒是否与相机的视锥体相交
-  return frustum.intersectsBox(boundingBox)
-}
-function getCameraViewRange() {
-  // 获取相机的视野角度和投影方式
-  const fov = camera.fov * (Math.PI / 180) // 将角度转换为弧度
-  const aspect = camera.aspect
-  const near = camera.near
-  const far = camera.far
-
-  // 根据视野角度和投影方式计算相机观察的范围
-  const halfHeight = Math.tan(fov / 2) * near
-  const halfWidth = halfHeight * aspect
-  const nearTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -near)
-  const nearBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -near)
-  const farTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -far)
-  const farBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -far)
-
-  // 返回相机观察的范围
-  return {
-    nearTopLeft,
-    nearBottomRight,
-    farTopLeft,
-    farBottomRight,
-  }
-}
-
-// function updateParticle() {
-// const time = Date.now() * 0.0005
-// particles.forEach(item => {
-//   const x = Math.sin(time * item.x) * 30
-//   const y = Math.cos(time * item.y) * 40
-//   const z = Math.cos(time * item.z) * 30
-//   item.particle.position.set(x, y, z)
-// })
+//   // 检查物体的包围盒是否与相机的视锥体相交
+//   return frustum.intersectsBox(boundingBox)
 // }
-function updateBubble() {
-  const timer = 0.0001 * Date.now()
+// function getCameraViewRange() {
+//   // 获取相机的视野角度和投影方式
+//   const fov = camera.fov * (Math.PI / 180) // 将角度转换为弧度
+//   const aspect = camera.aspect
+//   const near = camera.near
+//   const far = camera.far
 
-  for (let i = 0, il = spheres.length; i < il; i++) {
-    const sphere = spheres[i]
+//   // 根据视野角度和投影方式计算相机观察的范围
+//   const halfHeight = Math.tan(fov / 2) * near
+//   const halfWidth = halfHeight * aspect
+//   const nearTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -near)
+//   const nearBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -near)
+//   const farTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -far)
+//   const farBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -far)
 
-    sphere.position.x = 11 * Math.cos(timer + i)
-    sphere.position.y = 11 * Math.sin(timer + i * 1.1)
-  }
+//   // 返回相机观察的范围
+//   return {
+//     nearTopLeft,
+//     nearBottomRight,
+//     farTopLeft,
+//     farBottomRight,
+//   }
+// }
 
-  effect.render(scene, camera)
+function updateGroundParticle() {
+  const time = Date.now() * 0.0005
+  particles.forEach(item => {
+    const x = Math.sin(time * item.x) * 30
+    const y = Math.cos(time * item.y) * 40
+    const z = Math.cos(time * item.z) * 30
+    item.particle.position.set(x, y, z)
+  })
 }
+// function updateBubble() {
+//   const timer = 0.0001 * Date.now()
+
+//   for (let i = 0, il = spheres.length; i < il; i++) {
+//     const sphere = spheres[i]
+
+//     sphere.position.x = 11 * Math.cos(timer + i)
+//     sphere.position.y = 11 * Math.sin(timer + i * 1.1)
+//   }
+
+//   effect.render(scene, camera)
+// }
 function resizeRendererToDisplaySize(renderer) {
   const canvas = renderer.domElement
   const width = window.innerWidth
