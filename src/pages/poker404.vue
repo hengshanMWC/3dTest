@@ -57,7 +57,7 @@ function handleLenisScrroll() {
 }
 function initSmoothScrolling() {
   lenis = new Lenis({
-    lerp: 0.01, // 值越小平滑效果越明显
+    lerp: 0.1, // 值越小平滑效果越明显
     smoothWheel: true, // 为鼠标滚轮事件启用平滑滚动
   })
   // 每次用户滚动时更新ScrollTrigger
@@ -445,7 +445,7 @@ function update() {
     currentCameraLookAt.y,
     currentCameraLookAt.z,
   )
-  setCameraPosition()
+  // setCameraPosition()
 
   // updateSpark()
   stats.update()
@@ -609,7 +609,7 @@ function handleActivate() {
 
 function initScroll() {
   const options = {
-    ease: 'none',
+    // ease: 'none',
     scrollTrigger: {
       trigger: '.box2',
       start: 'top bottom',
@@ -625,48 +625,29 @@ function initScroll() {
     tlLookAt.to(currentCameraLookAt, {
       ...mirrorOperation.lookAt,
     })
-    tlPosition.to(currentCameraPosition, {
+    tlPosition.to(camera.position, {
       ...mirrorOperation.position,
     })
   })
-  // gsap.to(currentCameraLookAt, {
-  //   ...options,
-  //   motionPath: {
-  //     path: mirrorOperations.map(item => item.lookAt).slice(1),
-  //     // path: [mirrorOperations[1].lookAt],
-  //   },
-  // })
+  // tlPosition
+  //   .to(camera.position, {
+  //     motionPath: [mirrorOperations[1].position],
+  //   })
+  //   .to(camera.position, {
+  //     motionPath: mirrorOperations.map(item => item.position).slice(1),
+  //   })
 
-  // gsap.to(currentCameraPosition, {
-  //   ...options,
+  // gsap.to(camera.position, {
   //   motionPath: {
   //     path: mirrorOperations.map(item => item.position).slice(1),
-  //     // path: [mirrorOperations[1].position],
   //   },
-  // })
-
-  // const options2 = {
   //   scrollTrigger: {
   //     trigger: '.box2',
-  //     start: 'top 205%',
-  //     end: 'top 105%',
+  //     start: 'top bottom',
+  //     end: 'bottom bottom',
   //     scrub: true,
-  //     markers: true,
+  //     // markers: true,
   //     id: 'scrub',
-  //   },
-  // }
-  // gsap.to(lookAt, {
-  //   ...options2,
-  //   motionPath: {
-  //     // path: mirrorOperations.map(item => item.lookAt).slice(1),
-  //     path: [mirrorOperations[2].lookAt],
-  //   },
-  // })
-  // gsap.to(camera.position, {
-  //   ...options2,
-  //   motionPath: {
-  //     // path: mirrorOperations.map(item => item.position).slice(1),
-  //     path: [mirrorOperations[2].position],
   //   },
   // })
 }
@@ -675,7 +656,7 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   cancelAnimationFrame(update)
-  // lenis.off('scroll', handleLenisScrroll)
+  lenis.off('scroll', handleLenisScrroll)
   scene.remove(...scene.children)
 })
 
