@@ -11,7 +11,7 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
 import Lenis from '@studio-freight/lenis'
 import glb from '../asset/model/role03_all.glb'
-
+import { AnimationGroup } from './animation'
 import { mirrorOperations } from './mirrorOperations'
 
 const bg = '#333'
@@ -33,19 +33,15 @@ const currentCameraPosition = JSON.parse(
 window.currentCameraPosition = currentCameraPosition
 window.currentCameraLookAt = currentCameraLookAt
 
-// 按键以后甩剑并进入站立idle
-const possibleAnimsIdleRef = ref([])
-// 再按键通过walk_read回到walk(走路)的状态
-const possibleAnimsWalkRef = ref([])
-// 0: walk,1: idle
-let currentPossibleAnimsStatus = 0
-let activateCallback = null
 let mixer = null
 let clock = null
 const statsRef = ref(null)
 let stats = null
 const particles = []
 let lenis = null
+// 动作切换控制
+let animationGroup = null
+
 function handleLenisScrroll() {
   ScrollTrigger.update()
 }
@@ -158,34 +154,22 @@ function initMesh() {
        * walk  -  walk_swor  -  idle  -  walk_read  - walk
        */
       // 按键以后甩剑并进入站立idle
-      possibleAnimsIdleRef.value = [possibleAnims[3], possibleAnims[0]]
+      const possibleAnimsIdle = [possibleAnims[3], possibleAnims[0]]
       // 再按键通过walk_read回到walk(走路)的状态
-      possibleAnimsWalkRef.value = [possibleAnims[2], possibleAnims[1]]
-
-      // 初始为走路
-      currentAnim = possibleAnimsWalkRef.value[1]
-      currentAnim.play() // 播放空闲动画
-      // mixer.addEventListener('finished', continuousAnimation)
+      const possibleAnimsWalk = [possibleAnims[2], possibleAnims[1]]
+      currentAnim = possibleAnimsWalk[1]
+      animationGroup = new AnimationGroup(
+        mixer,
+        [possibleAnimsWalk, possibleAnimsIdle],
+        currentAnim,
+      )
+      window.animationGroup = animationGroup
     },
     undefined, // We don't need this function
     error => {
       console.error(error)
     },
   )
-}
-
-function getAnimationMaxIndex(possibleAnims) {
-  // 找到目前动作的index
-  const index = possibleAnims.findIndex(
-    possibleAnim => possibleAnim === currentAnim,
-  )
-  // index 如果是最后一个，那就回到第一个动作
-  if (index === possibleAnims.length - 1) {
-    return index
-  } else {
-    // 下一个动作
-    return index + 1
-  }
 }
 /** 创建光源 */
 function initLight() {
@@ -388,34 +372,7 @@ function resizeRendererToDisplaySize(renderer) {
 }
 
 function handleActivate() {
-  let currentPossibleAnims = []
-  if (currentPossibleAnimsStatus === 0) {
-    currentPossibleAnims = possibleAnimsIdleRef.value
-    currentPossibleAnimsStatus = 1
-  } else {
-    currentPossibleAnims = possibleAnimsWalkRef.value
-    currentPossibleAnimsStatus = 0
-  }
-  window.currentPossibleAnims = currentPossibleAnims
-  currentAnim.setLoop(THREE.LoopOnce)
-
-  function continuousAnimation() {
-    const maxIndex = getAnimationMaxIndex(currentPossibleAnims)
-    const maxAnim = currentPossibleAnims[maxIndex]
-    currentAnim.setLoop(THREE.LoopRepeat)
-    currentAnim.stop()
-    if (maxAnim === currentAnim) {
-      mixer.removeEventListener('finished', activateCallback)
-    } else {
-      maxAnim.setLoop(THREE.LoopOnce)
-      currentAnim = maxAnim
-    }
-    currentAnim.play()
-  }
-
-  mixer.removeEventListener('finished', activateCallback)
-  activateCallback = continuousAnimation
-  mixer.addEventListener('finished', continuousAnimation)
+  animationGroup.start()
 }
 
 function initScroll() {
