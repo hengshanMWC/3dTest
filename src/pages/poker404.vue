@@ -32,7 +32,7 @@ const currentCameraPosition = JSON.parse(
 )
 window.currentCameraPosition = currentCameraPosition
 window.currentCameraLookAt = currentCameraLookAt
-
+const possibleAnimsRef = ref([])
 // 按键以后甩剑并进入站立idle
 const possibleAnimsIdleRef = ref([])
 // 再按键通过walk_read回到walk(走路)的状态
@@ -148,7 +148,8 @@ function initMesh() {
         let clip = THREE.AnimationClip.findByName(clips, val.name)
 
         clip = mixer.clipAction(clip)
-        // clip.setLoop(THREE.LoopOnce)
+        clip.clampWhenFinished = true
+        clip.setLoop(THREE.LoopOnce)
         return clip
       })
       /**
@@ -158,10 +159,16 @@ function initMesh() {
        * walk  -  walk_swor  -  idle  -  walk_read  - walk
        */
       // 按键以后甩剑并进入站立idle
-      possibleAnimsIdleRef.value = [possibleAnims[3], possibleAnims[0]]
+      possibleAnimsIdleRef.value = window.possibleAnimsIdleRef = [
+        possibleAnims[3],
+        possibleAnims[0],
+      ]
       // 再按键通过walk_read回到walk(走路)的状态
-      possibleAnimsWalkRef.value = [possibleAnims[2], possibleAnims[1]]
-
+      possibleAnimsWalkRef.value = window.possibleAnimsWalkRef = [
+        possibleAnims[2],
+        possibleAnims[1],
+      ]
+      possibleAnimsRef.value = possibleAnims
       // 初始为走路
       currentAnim = possibleAnimsWalkRef.value[1]
       currentAnim.play() // 播放空闲动画
@@ -311,6 +318,22 @@ function initFloor() {
   //   scene.add(ground)
   // })
 }
+/**
+ * 切换动画
+ * @params form 当前执行的动画
+ * @params fSpeed 当前动画过度到下一个动画的时间
+ * @params to 下一个要执行的动画
+ * @params tSpeed 下一个动画执行完成后回到当前动画的时间
+ */
+function playModifierAnimation(to) {
+  if (to === currentAnim) return
+  currentAnim.stop()
+  currentAnim = to
+  to.play()
+}
+function palyAnimation(index) {
+  playModifierAnimation(possibleAnimsRef.value[index])
+}
 
 function initStats() {
   stats = new Stats()
@@ -456,14 +479,14 @@ onBeforeUnmount(() => {
     <div class="wrapper">
       <div ref="statsRef" class="stats"></div>
       <div class="buttons">
-        <!-- <div
+        <div
           v-for="(btn, index) in possibleAnimsRef"
           :key="index"
           class="button"
           @click="palyAnimation(index)"
         >
           <span>{{ btn._clip.name }}</span>
-        </div> -->
+        </div>
         <div class="button" @click="handleActivate">
           <span>activate</span>
         </div>
