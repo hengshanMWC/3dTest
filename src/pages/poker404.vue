@@ -20,7 +20,6 @@ const dimian = -5
 let camera = null // 相机
 let renderer = null // 渲染器对象
 let controls = null //
-let currentAnim = null
 let model = null
 const isHelp = false
 const mirrorOperationsIndex = 0
@@ -147,6 +146,19 @@ function initMesh() {
         // clip.setLoop(THREE.LoopOnce)
         return clip
       })
+
+      // window.possibleAnims = possibleAnims
+      // const prev = 3
+      // const next = 0
+      // possibleAnims[prev].play()
+      // const t = 2
+      // const value = possibleAnims[prev].getClip().duration
+      // setTimeout(
+      //   () => {
+      //     possibleAnims[next].play().crossFadeFrom(possibleAnims[prev], t)
+      //   },
+      //   (value - t) * 1000,
+      // )
       /**
        * 初始为走路
        * 按键以后甩剑并进入站立idle
@@ -157,7 +169,7 @@ function initMesh() {
       const possibleAnimsIdle = [possibleAnims[3], possibleAnims[0]]
       // 再按键通过walk_read回到walk(走路)的状态
       const possibleAnimsWalk = [possibleAnims[2], possibleAnims[1]]
-      currentAnim = possibleAnimsWalk[1]
+      const currentAnim = possibleAnimsWalk[1]
       animationGroup = new AnimationGroup(
         mixer,
         [possibleAnimsWalk, possibleAnimsIdle],
