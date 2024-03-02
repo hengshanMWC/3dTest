@@ -16,7 +16,7 @@ import { mirrorOperations } from './mirrorOperations'
 
 const bg = '#333'
 let scene = null // 场景
-const dimian = -5
+const dimian = -11
 let camera = null // 相机
 let renderer = null // 渲染器对象
 let controls = null //
