@@ -6,6 +6,7 @@ import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/addons/libs/stats.module.js'
 
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
@@ -23,6 +24,8 @@ let controls = null //
 let model = null
 const isHelp = false
 const mirrorOperationsIndex = 0
+const spheres = []
+let effect = null
 const currentCameraLookAt = JSON.parse(
   JSON.stringify(mirrorOperations[mirrorOperationsIndex].lookAt),
 )
@@ -308,6 +311,31 @@ function initFloor() {
   // })
 }
 
+function initBubble() {
+  const geometry = new THREE.SphereGeometry(0.2, 32, 16)
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+  })
+
+  for (let i = 0; i < 5; i++) {
+    const mesh = new THREE.Mesh(geometry, material)
+
+    mesh.position.x = Math.random() * 10 - 5
+    mesh.position.y = Math.random() * 10 - 5
+    mesh.position.z = Math.random() * 10 - 20
+
+    mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1
+
+    scene.add(mesh)
+
+    spheres.push(mesh)
+  }
+  const width = window.innerWidth || 2
+  const height = window.innerHeight || 2
+  effect = new AnaglyphEffect(renderer)
+  effect.setSize(width, height)
+}
+
 function initStats() {
   stats = new Stats()
   statsRef.value.appendChild(stats.dom)
@@ -322,6 +350,7 @@ function init() {
   clock = new THREE.Clock()
   initFloor()
   initMesh()
+  initBubble()
   initGroundParticle()
   initLight()
 
@@ -337,6 +366,18 @@ function updateMixer() {
     mixer.update(clock.getDelta())
   }
 }
+function updateBubble() {
+  const timer = 0.0001 * Date.now()
+
+  for (let i = 0, il = spheres.length; i < il; i++) {
+    const sphere = spheres[i]
+
+    sphere.position.x = 11 * Math.cos(timer + i)
+    sphere.position.y = 11 * Math.sin(timer + i * 1.1)
+  }
+
+  effect.render(scene, camera)
+}
 function update() {
   updateMixer()
 
@@ -345,7 +386,6 @@ function update() {
     camera.aspect = canvas.clientWidth / canvas.clientHeight
     camera.updateProjectionMatrix() // 重新计算相机对象的投影矩阵值
   }
-  updateGroundParticle()
   camera.lookAt(
     currentCameraLookAt.x,
     currentCameraLookAt.y,
@@ -354,6 +394,8 @@ function update() {
   // setCameraPosition()
 
   // updateSpark()
+  updateGroundParticle()
+  updateBubble()
   stats.update()
 
   renderer.render(scene, camera)
