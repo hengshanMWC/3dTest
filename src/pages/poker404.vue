@@ -15,6 +15,7 @@ import Lenis from '@studio-freight/lenis'
 import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
 import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
 import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { OutlinePass } from 'three/examples/jsm/postprocessing/OutlinePass.js'
 import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
 import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js'
@@ -23,6 +24,7 @@ import { AnimationGroup } from './animation'
 import { mirrorOperations } from './mirrorOperations'
 
 const bg = '#333'
+const lizibg = 0xf5bc6a
 let scene = null // 场景
 const dimian = -11
 let camera = null // 相机
@@ -32,14 +34,15 @@ let model = null
 const isHelp = false
 const mirrorOperationsIndex = 0
 const spheres = []
-let effect = null
+// const effect = null
+const effectFXAA = null
 const currentCameraLookAt = JSON.parse(
   JSON.stringify(mirrorOperations[mirrorOperationsIndex].lookAt),
 )
 const currentCameraPosition = JSON.parse(
   JSON.stringify(mirrorOperations[mirrorOperationsIndex].position),
 )
-let bloomComposer, finalComposer
+let composer, finalComposer, outlinePass
 
 let mixer = null
 let clock = null
@@ -49,7 +52,22 @@ const particles = []
 let lenis = null
 // 动作切换控制
 let animationGroup = null
+window.addEventListener('resize', onWindowResize)
+function onWindowResize() {
+  const width = window.innerWidth
+  const height = window.innerHeight
 
+  camera.aspect = width / height
+  camera.updateProjectionMatrix()
+
+  renderer.setSize(width, height)
+  composer.setSize(width, height)
+
+  effectFXAA.uniforms.resolution.value.set(
+    1 / window.innerWidth,
+    1 / window.innerHeight,
+  )
+}
 function handleLenisScrroll() {
   ScrollTrigger.update()
 }
@@ -101,24 +119,24 @@ function setCameraPosition() {
 
 /** 创建渲染器 */
 function initRenderer() {
+  const width = window.innerWidth
+  const height = window.innerHeight
   const canvas = document.querySelector('#c')
   renderer = new THREE.WebGLRenderer({
     canvas,
     antialias: true, // 抗齿距
   })
   renderer.shadowMap.enabled = true // 投射阴影
-  renderer.autoClear = false
+  renderer.setSize(width, height)
   renderer.setPixelRatio(window.devicePixelRatio)
 }
 function initControls() {
   controls = new OrbitControls(camera, renderer.domElement)
-  controls.maxPolarAngle = Math.PI / 2
-  controls.minPolarAngle = Math.PI / 3
-  controls.enableDamping = true
+  controls.minDistance = 5
+  controls.maxDistance = 20
   controls.enablePan = false
-  controls.dampingFactor = 0.1
-  controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
-  controls.autoRotateSpeed = 0.2 // 30
+  controls.enableDamping = true
+  controls.dampingFactor = 0.05
 }
 function random(min, max) {
   return Number.parseInt(Math.random() * (max - min) + min)
@@ -185,12 +203,12 @@ function initMesh() {
   )
 }
 function initGroundParticle() {
-  const geometry = new THREE.IcosahedronGeometry(0.15, 15)
-  const mtl = new THREE.MeshLambertMaterial({ color: 0xf5bc6a })
+  const geometry = new THREE.IcosahedronGeometry(0.04, 15)
+  const mtl = new THREE.MeshLambertMaterial({ color: lizibg })
   // const mtl = new THREE.MeshBasicMaterial({ color: 0xf5bc6a })
-  const intensity = 100
+  const intensity = 10
   for (let i = 0; i < 15; i++) {
-    const particle = new THREE.PointLight(bg, intensity)
+    const particle = new THREE.PointLight(lizibg, intensity)
     const mesh = new THREE.Mesh(geometry, mtl)
     particle.add(mesh)
     particles.push({
@@ -201,7 +219,10 @@ function initGroundParticle() {
       z: Math.random(),
     })
     scene.add(particle)
+    outlinePass.selectedObjects.push(mesh)
   }
+  // outlinePass.selectedObjects.push(...particles.map(item => item.particle))
+  window.outlinePass = outlinePass
   window.particles = particles
 }
 function setLayoutEnable(item) {
@@ -325,10 +346,10 @@ function initBubble() {
 
     spheres.push(mesh)
   }
-  const width = window.innerWidth || 2
-  const height = window.innerHeight || 2
-  effect = new AnaglyphEffect(renderer)
-  effect.setSize(width, height)
+  // const width = window.innerWidth || 2
+  // const height = window.innerHeight || 2
+  // effect = new AnaglyphEffect(renderer)
+  // effect.setSize(width, height)
 }
 
 function initStats() {
@@ -336,29 +357,51 @@ function initStats() {
   statsRef.value.appendChild(stats.dom)
 }
 function initBloomPass() {
-  const params = {
-    threshold: 0.15,
-    strength: 0.6,
-    radius: 0.27,
-    exposure: 1,
-  }
-  bloomComposer = new EffectComposer(renderer)
+  // const params = {
+  //   threshold: 0.15,
+  //   strength: 0.6,
+  //   radius: 0.27,
+  //   exposure: 1,
+  // }
+  composer = new EffectComposer(renderer)
 
-  const renderScene = new RenderPass(scene, camera)
-  // 光晕
-  const bloomPass = new UnrealBloomPass(
+  const renderPass = new RenderPass(scene, camera)
+  composer.addPass(renderPass)
+  const outputPass = new OutputPass()
+  composer.addPass(outputPass)
+  outlinePass = new OutlinePass(
     new THREE.Vector2(window.innerWidth, window.innerHeight),
-    1,
-    0.4,
-    0.85,
+    scene,
+    camera,
   )
-  bloomPass.threshold = params.threshold
-  bloomPass.strength = params.strength
-  bloomPass.radius = params.radius
+  outlinePass.edgeStrength = 1 // 宽度
+  outlinePass.edgeGlow = 10 // 辉光
+  outlinePass.edgeThickness = 1 // 清晰度
+  outlinePass.pulsePeriod = 3 // 脉冲周期
+  outlinePass.visibleEdgeColor = new THREE.Color(lizibg)
+
+  composer.addPass(outlinePass)
+
+  // effectFXAA = new ShaderPass(FXAAShader)
+  // effectFXAA.uniforms.resolution.value.set(
+  //   1 / window.innerWidth,
+  //   1 / window.innerHeight,
+  // )
+  // composer.addPass(effectFXAA)
+  // 光晕
+  // const bloomPass = new UnrealBloomPass(
+  //   new THREE.Vector2(window.innerWidth, window.innerHeight),
+  //   1,
+  //   0.4,
+  //   0.85,
+  // )
+  // bloomPass.threshold = params.threshold
+  // bloomPass.strength = params.strength
+  // bloomPass.radius = params.radius
   // bloomPass.exposure = params.exposure
-  bloomComposer.addPass(renderScene)
-  bloomComposer.addPass(bloomPass)
-  window.bloomPass = bloomPass
+  // composer.addPass(renderPass)
+  // composer.addPass(bloomPass)
+  // window.bloomPass = bloomPass
   // const effectFXAA = new ShaderPass(FXAAShader)
   // effectFXAA.uniforms.resolution.value.set(
   //   1 / window.innerWidth,
@@ -368,7 +411,7 @@ function initBloomPass() {
   //   new THREE.ShaderMaterial({
   //     uniforms: {
   //       baseTexture: { value: null },
-  //       bloomTexture: { value: bloomComposer.renderTarget2.texture },
+  //       bloomTexture: { value: composer.renderTarget2.texture },
   //     },
   //     vertexShader: `varying vec2 vUv;
 
@@ -394,49 +437,49 @@ function initBloomPass() {
   //   'baseTexture',
   // )
   // mixPass.needsSwap = true
-  // bloomComposer.addPass(mixPass)
+  // composer.addPass(mixPass)
 
   //   const outputPass = new OutputPass()
 
   //   finalComposer = new EffectComposer(renderer)
-  //   finalComposer.addPass(renderScene)
+  //   finalComposer.addPass(renderPass)
   //   finalComposer.addPass(mixPass)
   //   finalComposer.addPass(outputPass)
-  const gui = new GUI()
+  // const gui = new GUI()
 
-  const bloomFolder = gui.addFolder('bloom')
+  // const bloomFolder = gui.addFolder('bloom')
 
-  bloomFolder.add(params, 'threshold', 0.0, 1.0).onChange(function (value) {
-    bloomPass.threshold = Number(value)
-    // update()
-  })
+  // bloomFolder.add(params, 'threshold', 0.0, 1.0).onChange(function (value) {
+  //   bloomPass.threshold = Number(value)
+  //   // update()
+  // })
 
-  bloomFolder.add(params, 'strength', 0.0, 3).onChange(function (value) {
-    bloomPass.strength = Number(value)
-    // update()
-  })
+  // bloomFolder.add(params, 'strength', 0.0, 3).onChange(function (value) {
+  //   bloomPass.strength = Number(value)
+  //   // update()
+  // })
 
-  bloomFolder
-    .add(params, 'radius', 0.0, 1.0)
-    .step(0.01)
-    .onChange(function (value) {
-      bloomPass.radius = Number(value)
-      // update()
-    })
+  // bloomFolder
+  //   .add(params, 'radius', 0.0, 1.0)
+  //   .step(0.01)
+  //   .onChange(function (value) {
+  //     bloomPass.radius = Number(value)
+  //     // update()
+  //   })
 
-  const toneMappingFolder = gui.addFolder('tone mapping')
+  // const toneMappingFolder = gui.addFolder('tone mapping')
 
-  toneMappingFolder.add(params, 'exposure', 0.1, 2).onChange(function (value) {
-    renderer.toneMappingExposure = value ** 4.0
-    // update()
-  })
+  // toneMappingFolder.add(params, 'exposure', 0.1, 2).onChange(function (value) {
+  //   renderer.toneMappingExposure = value ** 4.0
+  //   // update()
+  // })
 }
 /** 初始化 */
 function init() {
   initScene()
   initCamera()
   initRenderer()
-  // initBloomPass()
+  initBloomPass()
 
   clock = new THREE.Clock()
   initFloor()
@@ -467,16 +510,16 @@ function updateBubble() {
     sphere.position.y = 11 * Math.sin(timer + i * 1.1)
   }
 
-  effect.render(scene, camera)
+  // effect.render(scene, camera)
 }
 function update() {
   updateMixer()
 
-  if (resizeRendererToDisplaySize(renderer)) {
-    const canvas = renderer.domElement
-    camera.aspect = canvas.clientWidth / canvas.clientHeight
-    camera.updateProjectionMatrix() // 重新计算相机对象的投影矩阵值
-  }
+  // if (resizeRendererToDisplaySize(renderer)) {
+  //   const canvas = renderer.domElement
+  //   camera.aspect = canvas.clientWidth / canvas.clientHeight
+  //   camera.updateProjectionMatrix() // 重新计算相机对象的投影矩阵值
+  // }
   camera.lookAt(
     currentCameraLookAt.x,
     currentCameraLookAt.y,
@@ -491,12 +534,12 @@ function update() {
 
   // renderer.clear()
   // camera.layers.set(1)
-  // bloomComposer.render()
+  composer.render()
 
   // renderer.clearDepth() // 清除深度缓存
 
   // camera.layers.set(0)
-  renderer.render(scene, camera)
+  // renderer.render(scene, camera)
   requestAnimationFrame(update)
 }
 
@@ -556,6 +599,7 @@ onMounted(() => {
 onBeforeUnmount(() => {
   cancelAnimationFrame(update)
   scene.remove(...scene.children)
+  window.removeEventListener('resize', onWindowResize)
   lenis.off('scroll', handleLenisScrroll)
 })
 </script>

@@ -10,6 +10,9 @@ import touming from './pages/touming.vue'
 import gsap from './pages/gsap.vue'
 import webgl_lights_rectarealight from './pages/webgl_lights_rectarealight.vue'
 import webgl_postprocessing_unreal_bloom from './pages/webgl_postprocessing_unreal_bloom.vue'
+import webgl_postprocessing_outline_test2 from './pages/webgl_postprocessing_outline_test2.vue'
+import webgl_postprocessing_outline_test from './pages/webgl_postprocessing_outline_test.vue'
+import webgl_postprocessing_outline from './pages/webgl_postprocessing_outline.vue'
 
 import poker404 from './pages/poker404.vue'
 
@@ -72,6 +75,21 @@ const routes = [
     path: '/gsap',
     component: gsap,
     name: 'gsap',
+  },
+  {
+    path: '/webgl_postprocessing_outline_test2',
+    component: webgl_postprocessing_outline_test2,
+    name: 'webgl_postprocessing_outline_test2',
+  },
+  {
+    path: '/webgl_postprocessing_outline_test',
+    component: webgl_postprocessing_outline_test,
+    name: 'webgl_postprocessing_outline_test',
+  },
+  {
+    path: '/webgl_postprocessing_outline',
+    component: webgl_postprocessing_outline,
+    name: 'webgl_postprocessing_outline',
   },
 
   // {
