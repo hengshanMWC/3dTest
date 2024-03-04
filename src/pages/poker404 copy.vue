@@ -4,32 +4,32 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import Stats from 'three/addons/libs/stats.module.js'
-
-// import { useEventListener } from '@vueuse/core'
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 
-// import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
 import Lenis from '@studio-freight/lenis'
 import glb from '../asset/model/role03_all.glb'
-
-// import showstandGlb from '../asset/model/role00_showstand_01.glb'
+import { AnimationGroup } from './animation'
 import { mirrorOperations } from './mirrorOperations'
-
-// import { Spark, getRandomInRange } from './spark'
 
 const bg = '#333'
 let scene = null // 场景
-const dimian = -5
+const dimian = -11
 let camera = null // 相机
-// const material = null // 材质
 let renderer = null // 渲染器对象
 let controls = null //
-let currentAnim = null
 let model = null
 const isHelp = false
 const mirrorOperationsIndex = 0
+const spheres = []
+let effect = null
 const currentCameraLookAt = JSON.parse(
   JSON.stringify(mirrorOperations[mirrorOperationsIndex].lookAt),
 )
@@ -39,24 +39,16 @@ const currentCameraPosition = JSON.parse(
 window.currentCameraPosition = currentCameraPosition
 window.currentCameraLookAt = currentCameraLookAt
 
-// 按键以后甩剑并进入站立idle
-const possibleAnimsIdleRef = ref([])
-// 再按键通过walk_read回到walk(走路)的状态
-const possibleAnimsWalkRef = ref([])
-// 0: walk,1: idle
-let currentPossibleAnimsStatus = 0
-let activateCallback = null
-const sparks = []
 let mixer = null
 let clock = null
-// let mouseX = 0
-// let mouseY = 0
 const statsRef = ref(null)
 let stats = null
 const particles = []
-// const spheres = []
-// let effect = null
 let lenis = null
+let composerBloom
+// 动作切换控制
+let animationGroup = null
+
 function handleLenisScrroll() {
   ScrollTrigger.update()
 }
@@ -77,12 +69,6 @@ function initSmoothScrolling() {
   requestAnimationFrame(scrollFn)
 }
 
-const touched = false
-function onDocumentMouseMove(mousecoords) {
-  mouseX = mousecoords.x
-  mouseY = mousecoords.y
-}
-
 /** 创建场景 */
 function initScene() {
   scene = new THREE.Scene()
@@ -92,14 +78,40 @@ function initScene() {
 
 /** 创建相机 */
 function initCamera() {
+  // 场景
+  scene = new THREE.Scene()
+  // 相机
   camera = new THREE.PerspectiveCamera(
     45,
     window.innerWidth / window.innerHeight,
     1,
-    // 100,
+    // 100000,
   )
   setCameraPosition()
   window.camera = camera
+  // camera.position.set(50, 50, 50)
+  // camera.position.y = 50
+  // 渲染器
+  const canvas = document.querySelector('#c')
+  renderer = new THREE.WebGLRenderer({
+    canvas,
+    antialias: true,
+  })
+  renderer.setPixelRatio(window.devicePixelRatio)
+  renderer.setSize(window.innerWidth, window.innerHeight)
+  // 环境光
+  const light = new THREE.AmbientLight(0xffffff, 0.6)
+  light.layers.enable(0)
+  light.layers.enable(1)
+  scene.add(light)
+  // 控制器
+  const controls = new OrbitControls(camera, renderer.domElement)
+  scene.add(new THREE.AxesHelper(100))
+  window.onresize = () => {
+    renderer.setSize(window.innerWidth, window.innerHeight)
+    camera.aspect = window.innerWidth / window.innerHeight
+    camera.updateProjectionMatrix()
+  }
 }
 
 function setCameraPosition() {
@@ -119,37 +131,25 @@ function initRenderer() {
   })
   renderer.shadowMap.enabled = true // 投射阴影
   renderer.setPixelRatio(window.devicePixelRatio)
+  renderer.setSize(window.innerWidth, window.innerHeight)
 }
 function initControls() {
   controls = new OrbitControls(camera, renderer.domElement)
-  controls.maxPolarAngle = Math.PI / 2
-  controls.minPolarAngle = Math.PI / 3
-  controls.enableDamping = true
-  controls.enablePan = false
-  controls.dampingFactor = 0.1
-  controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
-  controls.autoRotateSpeed = 0.2 // 30
+  scene.add(new THREE.AxesHelper(100))
+  // controls.maxPolarAngle = Math.PI / 2
+  // controls.minPolarAngle = Math.PI / 3
+  // controls.enableDamping = true
+  // controls.enablePan = false
+  // controls.dampingFactor = 0.1
+  // controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
+  // controls.autoRotateSpeed = 0.2 // 30
 }
 
 /** 创建网格模型对象 */
 function initMesh() {
   const loader = new GLTFLoader()
 
-  // 加载纹理贴图
-  // const texture = new THREE.TextureLoader().load(
-  //   'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy.jpg',
-  // )
-  // texture.flipY = false
-
-  /** 材质对象 */
-  // material = new THREE.MeshPhongMaterial({
-  //   map: texture,
-  //   color: 0xffffff,
-  //   skinning: true,
-  // })
-
   loader.load(
-    // 'https://s3-us-west-2.amazonaws.com/s.cdpn.io/1376484/stacy_lightweight.glb',
     glb,
     gltf => {
       window.model = model = gltf.scene
@@ -182,6 +182,19 @@ function initMesh() {
         // clip.setLoop(THREE.LoopOnce)
         return clip
       })
+
+      // window.possibleAnims = possibleAnims
+      // const prev = 3
+      // const next = 0
+      // possibleAnims[prev].play()
+      // const t = 2
+      // const value = possibleAnims[prev].getClip().duration
+      // setTimeout(
+      //   () => {
+      //     possibleAnims[next].play().crossFadeFrom(possibleAnims[prev], t)
+      //   },
+      //   (value - t) * 1000,
+      // )
       /**
        * 初始为走路
        * 按键以后甩剑并进入站立idle
@@ -189,14 +202,16 @@ function initMesh() {
        * walk  -  walk_swor  -  idle  -  walk_read  - walk
        */
       // 按键以后甩剑并进入站立idle
-      possibleAnimsIdleRef.value = [possibleAnims[3], possibleAnims[0]]
+      const possibleAnimsIdle = [possibleAnims[3], possibleAnims[0]]
       // 再按键通过walk_read回到walk(走路)的状态
-      possibleAnimsWalkRef.value = [possibleAnims[2], possibleAnims[1]]
-
-      // 初始为走路
-      currentAnim = possibleAnimsWalkRef.value[1]
-      currentAnim.play() // 播放空闲动画
-      // mixer.addEventListener('finished', continuousAnimation)
+      const possibleAnimsWalk = [possibleAnims[2], possibleAnims[1]]
+      const currentAnim = possibleAnimsWalk[1]
+      animationGroup = new AnimationGroup(
+        mixer,
+        [possibleAnimsWalk, possibleAnimsIdle],
+        currentAnim,
+      )
+      window.animationGroup = animationGroup
     },
     undefined, // We don't need this function
     error => {
@@ -204,194 +219,34 @@ function initMesh() {
     },
   )
 }
-
-// function continuousAnimation() {
-//   const nextAnim = getAnimationLoopNext()
-//   currentAnim.stop()
-//   currentAnim = nextAnim.play()
-// }
-
-function getAnimationMaxIndex(possibleAnims) {
-  // 找到目前动作的index
-  const index = possibleAnims.findIndex(
-    possibleAnim => possibleAnim === currentAnim,
-  )
-  // index 如果是最后一个，那就回到第一个动作
-  if (index === possibleAnims.length - 1) {
-    return index
-  } else {
-    // 下一个动作
-    return index + 1
-  }
+function enableAll(item) {
+  item.layers.enable(0)
+  item.layers.enable(1)
 }
 /** 创建光源 */
 function initLight() {
-  const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1)
-  hemiLight.position.set(0, 50, 0)
-  scene.add(hemiLight)
-  // 阴影
-  const d = 8.25
-  const dirLightShadow = new THREE.DirectionalLight(0xffffff, 0.5)
-  dirLightShadow.position.set(-8, 12, 8)
-  dirLightShadow.castShadow = true
-  dirLightShadow.shadow.mapSize = new THREE.Vector2(1024, 1024)
-  dirLightShadow.shadow.camera.near = 0.1
-  dirLightShadow.shadow.camera.far = 1500
-  dirLightShadow.shadow.camera.left = d * -1
-  dirLightShadow.shadow.camera.right = d
-  dirLightShadow.shadow.camera.top = d
-  dirLightShadow.shadow.camera.bottom = d * -1
-  scene.add(dirLightShadow)
-  // 左光
-  const dirLightLeft = new THREE.DirectionalLight(0x50b2df, 3)
-  window.dirLightLeft = dirLightLeft
-  dirLightLeft.position.set(-7, 0, 3)
-  const targetLeftObject = new THREE.Object3D()
-  targetLeftObject.position.set(0, 0, -3)
-  window.targetLeftObject = targetLeftObject
-  dirLightLeft.target = targetLeftObject
-  if (isHelp) {
-    const helperLeft = new THREE.DirectionalLightHelper(dirLightLeft, 1)
-    scene.add(helperLeft)
-  }
-  scene.add(targetLeftObject)
-  scene.add(dirLightLeft)
-  // 右黄光
-  const dirRightFront = new THREE.DirectionalLight(0xf5b768, 10)
-  window.dirRightFront = dirRightFront
-  dirRightFront.position.set(7, 5, 0)
-  const targetRightObject = new THREE.Object3D()
-  targetRightObject.position.set(0, 5, 2)
-  window.targetRightObject = targetRightObject
-  scene.add(targetRightObject)
-
-  dirRightFront.target = targetRightObject
-  if (isHelp) {
-    const helperRight = new THREE.DirectionalLightHelper(dirRightFront, 1)
-    scene.add(helperRight)
-  }
-  scene.add(dirRightFront)
-  // 正面光
-  const dirLightFront = new THREE.DirectionalLight(0xeebe8f, 5)
-  window.dirLightFront = dirLightFront
-  dirLightFront.position.set(5, 7, 5)
-  const targetFrontObject = new THREE.Object3D()
-  targetFrontObject.position.set(2, 7, 0)
-  window.targetFrontObject = targetFrontObject
-  scene.add(targetFrontObject)
-
-  dirLightFront.target = targetFrontObject
-  if (isHelp) {
-    const helperFront = new THREE.DirectionalLightHelper(dirLightFront, 1)
-    scene.add(helperFront)
-  }
-  scene.add(dirLightFront)
-  // 背面光
-  const dirLightVerso = new THREE.DirectionalLight(0x50b2df, 1)
-  window.dirLightVerso = dirLightVerso
-  dirLightVerso.position.set(0, 4, -8)
-  const targetVersoObject = new THREE.Object3D()
-  targetVersoObject.position.set(6, 4, 0)
-  window.targetVersoObject = targetVersoObject
-  scene.add(targetVersoObject)
-
-  dirLightVerso.target = targetVersoObject
-  if (isHelp) {
-    const helperVerson = new THREE.DirectionalLightHelper(dirLightVerso, 1)
-    scene.add(helperVerson)
-  }
-  scene.add(dirLightVerso)
+  const light = new THREE.AmbientLight(0xffffff, 0.6)
+  light.layers.enable(0)
+  light.layers.enable(1)
+  scene.add(light)
 }
 
-// function getRandomHexColor() {
-//   // 生成一个随机的0到16777215之间的整数
-//   const randomColor = Math.floor(Math.random() * 16777215)
-//   // 将整数转换为十六进制，并在开头补零以确保是六位颜色代码
-//   return `#${randomColor.toString(16).padStart(6, '0')}`
-// }
 function initGroundParticle() {
-  const sphere = new THREE.SphereGeometry(0.2, 8, 4)
-  const intensity = 100
-  const bg = 0xf5bc6a
-  for (let i = 0; i < 10; i++) {
-    const particle = new THREE.PointLight(bg, intensity)
-    particle.add(
-      new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ color: bg })),
-    )
+  const geometry = new THREE.IcosahedronGeometry(1, 15)
+  const mtl = new THREE.MeshLambertMaterial({ color: 0xf5bc6a })
+  for (let i = 0; i < 1; i++) {
+    const particle = new THREE.Mesh(geometry, mtl)
     particles.push({
       particle,
       x: Math.random(),
       y: Math.random(),
       z: Math.random(),
     })
+    particle.layers.set(1)
     scene.add(particle)
   }
+  window.particles = particles
 }
-// function initParticle() {
-//   const sphere = new THREE.SphereGeometry(0.1, 8, 4)
-//   const intensity = 100
-//   const bg = 0xf5bc6a
-//   for (let i = 0; i < 15; i++) {
-//     const particle = new THREE.PointLight(bg, intensity)
-//     const material = new THREE.MeshBasicMaterial({
-//       color: bg,
-//       transparent: true,
-//     })
-//     const mesh = new THREE.Mesh(sphere, material)
-//     particle.add(mesh)
-//     // particle.position.set(-1, 10, 4)
-//     particle.position.set(-90, getRandomInRange(0, -5, 10), 4)
-//     // particles.push({
-//     //   particle,
-//     //   x: Math.random(),
-//     //   y: Math.random(),
-//     //   z: Math.random(),
-//     // })
-
-//     const spark = new Spark(camera, material, particle)
-//     const options = { delay: i * 0.1 }
-//     spark.runLight(options)
-//     spark.runMove(options)
-//     sparks.push(spark)
-//     scene.add(particle)
-//   }
-// }
-// function initBubble() {
-//   const path = './cube/pisa/'
-//   const format = '.png'
-//   const urls = [
-//     `${path}px${format}`,
-//     `${path}nx${format}`,
-//     `${path}py${format}`,
-//     `${path}ny${format}`,
-//     `${path}pz${format}`,
-//     `${path}nz${format}`,
-//   ]
-//   const textureCube = new THREE.CubeTextureLoader().load(urls)
-//   const geometry = new THREE.SphereGeometry(0.2, 32, 16)
-//   const material = new THREE.MeshBasicMaterial({
-//     color: 0xffffff,
-//     envMap: textureCube,
-//   })
-
-//   for (let i = 0; i < 5; i++) {
-//     const mesh = new THREE.Mesh(geometry, material)
-
-//     mesh.position.x = Math.random() * 10 - 5
-//     mesh.position.y = Math.random() * 10 - 5
-//     mesh.position.z = Math.random() * 10 - 5
-
-//     mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1
-
-//     scene.add(mesh)
-
-//     spheres.push(mesh)
-//   }
-//   const width = window.innerWidth || 2
-//   const height = window.innerHeight || 2
-//   effect = new AnaglyphEffect(renderer)
-//   effect.setSize(width, height)
-// }
 
 /** 创建地面 */
 function initFloor() {
@@ -420,6 +275,54 @@ function initFloor() {
   // })
 }
 
+function initBloomPass() {
+  const params = {
+    exposure: 0,
+    bloomStrength: 1.5,
+    bloomThreshold: 0,
+    bloomRadius: 0,
+  }
+  composerBloom = new EffectComposer(renderer)
+
+  const renderScene = new RenderPass(scene, camera)
+  // 光晕
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    3,
+    0.4,
+    0.85,
+  )
+  bloomPass.threshold = params.bloomThreshold
+  bloomPass.strength = params.bloomStrength
+  bloomPass.radius = params.bloomRadius
+  composerBloom.addPass(renderScene)
+  composerBloom.addPass(bloomPass)
+}
+function initBubble() {
+  const geometry = new THREE.SphereGeometry(0.2, 32, 16)
+  const material = new THREE.MeshBasicMaterial({
+    color: 0x000000,
+  })
+
+  for (let i = 0; i < 5; i++) {
+    const mesh = new THREE.Mesh(geometry, material)
+
+    mesh.position.x = Math.random() * 10 - 5
+    mesh.position.y = Math.random() * 10 - 5
+    mesh.position.z = Math.random() * 10 - 20
+
+    mesh.scale.x = mesh.scale.y = mesh.scale.z = Math.random() * 3 + 1
+
+    scene.add(mesh)
+
+    spheres.push(mesh)
+  }
+  const width = window.innerWidth || 2
+  const height = window.innerHeight || 2
+  effect = new AnaglyphEffect(renderer)
+  effect.setSize(width, height)
+}
+
 function initStats() {
   stats = new Stats()
   statsRef.value.appendChild(stats.dom)
@@ -427,23 +330,22 @@ function initStats() {
 
 /** 初始化 */
 function init() {
-  initScene()
+  // initScene()
   initCamera()
-  initRenderer()
+  // initRenderer()
+  initBloomPass()
 
   clock = new THREE.Clock()
-  initFloor()
-  initMesh()
+  // initFloor()
+  // initMesh()
   // initBubble()
-  // initParticle()
   initGroundParticle()
-  initLight()
-  // initSpark()
+  // initLight()
 
-  initStats()
+  // initStats()
   // initControls()
-  initScroll()
-  initSmoothScrolling()
+  // initScroll()
+  // initSmoothScrolling()
   update()
 }
 function updateMixer() {
@@ -452,94 +354,50 @@ function updateMixer() {
     mixer.update(clock.getDelta())
   }
 }
-function update() {
-  updateMixer()
+function updateBubble() {
+  const timer = 0.0001 * Date.now()
 
-  if (resizeRendererToDisplaySize(renderer)) {
-    const canvas = renderer.domElement
-    camera.aspect = canvas.clientWidth / canvas.clientHeight
-    camera.updateProjectionMatrix() // 重新计算相机对象的投影矩阵值
+  for (let i = 0, il = spheres.length; i < il; i++) {
+    const sphere = spheres[i]
+
+    sphere.position.x = 11 * Math.cos(timer + i)
+    sphere.position.y = 11 * Math.sin(timer + i * 1.1)
   }
-  // if (touched) {
-  //   const innerWidthCenter = window.innerWidth / 2
-  //   const innerHeightCenter = window.innerHeight / 2
-  //   camera.position.x =
-  //     ((mouseX - innerWidthCenter) * cameraXYZ[0]) / 200 + cameraXYZ[0]
-  //   camera.position.y =
-  //     ((mouseY - innerHeightCenter) * cameraXYZ[1]) / 1500 + cameraXYZ[1]
-  // }
-  // 计算相机位置
-  // camera.position.x = radius * Math.sin(angle)
-  // camera.position.z = radius * Math.cos(angle)
-  // camera.lookAt(cube.position)
 
-  // 增加角度，使相机绕着立方体旋转
-  // angle += rotationSpeed
-  // updateBubble()
-  // updateParticle()
-  // camera.lookAt(scene.position)
-  // if (model) {
-  //   camera.lookAt(model.position)
-  // } else {
-  //   camera.lookAt(scene.position)
+  effect.render(scene, camera)
+}
+function update() {
+  // updateMixer()
+
+  // if (resizeRendererToDisplaySize(renderer)) {
+  //   const canvas = renderer.domElement
+  //   camera.aspect = canvas.clientWidth / canvas.clientHeight
+  //   camera.updateProjectionMatrix() // 重新计算相机对象的投影矩阵值
   // }
-  // camera.rotation.set(...cameraRotation1)
-  updateGroundParticle()
-  camera.lookAt(
-    currentCameraLookAt.x,
-    currentCameraLookAt.y,
-    currentCameraLookAt.z,
-  )
+  // camera.lookAt(
+  //   currentCameraLookAt.x,
+  //   currentCameraLookAt.y,
+  //   currentCameraLookAt.z,
+  // )
   // setCameraPosition()
 
   // updateSpark()
-  stats.update()
+  // updateGroundParticle()
+  // updateBubble()
+  // stats.update()
 
+  renderer.autoClear = false
+  renderer.clear()
+  camera.layers.set(1)
+  composerBloom.render()
+
+  renderer.clearDepth() // 清除深度缓存
+
+  camera.layers.set(0)
   renderer.render(scene, camera)
+  // updateBloom()
   requestAnimationFrame(update)
 }
-// function isObjectInCameraView(object) {
-//   // 初始化 Frustum 对象
-//   const frustum = new THREE.Frustum()
-
-//   // 设置 Frustum 对象的参数为相机的视锥体参数
-//   camera.updateMatrix() // 保证相机矩阵最新
-//   camera.updateMatrixWorld() // 保证相机矩阵世界最新
-//   const matrix = new THREE.Matrix4().multiplyMatrices(
-//     camera.projectionMatrix,
-//     camera.matrixWorldInverse,
-//   )
-//   frustum.setFromProjectionMatrix(matrix)
-
-//   // 获取物体的包围盒
-//   const boundingBox = new THREE.Box3().setFromObject(object)
-
-//   // 检查物体的包围盒是否与相机的视锥体相交
-//   return frustum.intersectsBox(boundingBox)
-// }
-// function getCameraViewRange() {
-//   // 获取相机的视野角度和投影方式
-//   const fov = camera.fov * (Math.PI / 180) // 将角度转换为弧度
-//   const aspect = camera.aspect
-//   const near = camera.near
-//   const far = camera.far
-
-//   // 根据视野角度和投影方式计算相机观察的范围
-//   const halfHeight = Math.tan(fov / 2) * near
-//   const halfWidth = halfHeight * aspect
-//   const nearTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -near)
-//   const nearBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -near)
-//   const farTopLeft = new THREE.Vector3(-halfWidth, halfHeight, -far)
-//   const farBottomRight = new THREE.Vector3(halfWidth, -halfHeight, -far)
-
-//   // 返回相机观察的范围
-//   return {
-//     nearTopLeft,
-//     nearBottomRight,
-//     farTopLeft,
-//     farBottomRight,
-//   }
-// }
 
 function updateGroundParticle() {
   const time = Date.now() * 0.0005
@@ -550,18 +408,6 @@ function updateGroundParticle() {
     item.particle.position.set(x, y, z)
   })
 }
-// function updateBubble() {
-//   const timer = 0.0001 * Date.now()
-
-//   for (let i = 0, il = spheres.length; i < il; i++) {
-//     const sphere = spheres[i]
-
-//     sphere.position.x = 11 * Math.cos(timer + i)
-//     sphere.position.y = 11 * Math.sin(timer + i * 1.1)
-//   }
-
-//   effect.render(scene, camera)
-// }
 function resizeRendererToDisplaySize(renderer) {
   const canvas = renderer.domElement
   const width = window.innerWidth
@@ -576,81 +422,9 @@ function resizeRendererToDisplaySize(renderer) {
   return needResize
 }
 
-function getMousePos(e) {
-  return { x: e.clientX, y: e.clientY }
-}
 function handleActivate() {
-  let currentPossibleAnims = []
-  if (currentPossibleAnimsStatus === 0) {
-    currentPossibleAnims = possibleAnimsIdleRef.value
-    currentPossibleAnimsStatus = 1
-  } else {
-    currentPossibleAnims = possibleAnimsWalkRef.value
-    currentPossibleAnimsStatus = 0
-  }
-  window.currentPossibleAnims = currentPossibleAnims
-  currentAnim.setLoop(THREE.LoopOnce)
-
-  function continuousAnimation() {
-    const maxIndex = getAnimationMaxIndex(currentPossibleAnims)
-    const maxAnim = currentPossibleAnims[maxIndex]
-    currentAnim.setLoop(THREE.LoopRepeat)
-    currentAnim.stop()
-    if (maxAnim === currentAnim) {
-      mixer.removeEventListener('finished', activateCallback)
-    } else {
-      maxAnim.setLoop(THREE.LoopOnce)
-      currentAnim = maxAnim
-    }
-    currentAnim.play()
-  }
-
-  mixer.removeEventListener('finished', activateCallback)
-  activateCallback = continuousAnimation
-  mixer.addEventListener('finished', continuousAnimation)
+  animationGroup.start()
 }
-// function initSpark() {
-//   const lightTextureLoader = new THREE.TextureLoader()
-//   lightTextureLoader.load('./beam_177_tex_eff.png', function (texture) {
-//     const lightMaterial = new THREE.PointsMaterial({
-//       size: 1,
-//       map: texture,
-//       transparent: true,
-//     })
-//     const lightGeometry = new THREE.BufferGeometry()
-//     const lightPosition = new THREE.BufferAttribute(
-//       new Float32Array([0, 0, 0]),
-//       3,
-//     ) // 初始位置
-//     lightGeometry.setAttribute('position', lightPosition) // 设置光点位置
-//     const light = new THREE.Points(lightGeometry, lightMaterial)
-//     sparkArray.push(new Spark(lightMaterial, lightPosition, lightGeometry))
-//     scene.add(light)
-//   })
-// }
-
-// function updateSpark() {
-//   sparkArray.forEach(spark => {
-//     spark.setPosition()
-//     spark.setLight()
-//   })
-// }
-/**
- * 切换动画
- * @params form 当前执行的动画
- * @params fSpeed 当前动画过度到下一个动画的时间
- * @params to 下一个要执行的动画
- * @params tSpeed 下一个动画执行完成后回到当前动画的时间
- */
-// function playModifierAnimation(to) {
-//   if (to === currentAnim) return
-//   currentAnim.stop()
-//   currentAnim = to
-//   to.play()
-// }
-// function palyAnimation(index) {
-//   playModifierAnimation(possibleAnimsRef.value[index])
-// }
 
 function initScroll() {
   const options = {
@@ -674,27 +448,6 @@ function initScroll() {
       ...mirrorOperation.position,
     })
   })
-  // tlPosition
-  //   .to(camera.position, {
-  //     motionPath: [mirrorOperations[1].position],
-  //   })
-  //   .to(camera.position, {
-  //     motionPath: mirrorOperations.map(item => item.position).slice(1),
-  //   })
-
-  // gsap.to(camera.position, {
-  //   motionPath: {
-  //     path: mirrorOperations.map(item => item.position).slice(1),
-  //   },
-  //   scrollTrigger: {
-  //     trigger: '.box2',
-  //     start: 'top bottom',
-  //     end: 'bottom bottom',
-  //     scrub: true,
-  //     // markers: true,
-  //     id: 'scrub',
-  //   },
-  // })
 }
 onMounted(() => {
   init()
@@ -704,14 +457,6 @@ onBeforeUnmount(() => {
   lenis.off('scroll', handleLenisScrroll)
   scene.remove(...scene.children)
 })
-
-// useEventListener(document, 'mousemove', e => {
-//   touched = true
-//   const mousecoords = getMousePos(e)
-//   onDocumentMouseMove(mousecoords)
-// })
-
-// // You can use a ScrollTrigger in a tween or timeline
 </script>
 
 <template>

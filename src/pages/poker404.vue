@@ -10,7 +10,14 @@ import { AnaglyphEffect } from 'three/addons/effects/AnaglyphEffect.js'
 
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { gsap } from 'gsap'
+import { OutputPass } from 'three/addons/postprocessing/OutputPass.js'
 import Lenis from '@studio-freight/lenis'
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js'
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js'
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js'
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js'
+import { GUI } from 'three/addons/libs/lil-gui.module.min.js'
+import { FXAAShader } from 'three/examples/jsm/shaders/FXAAShader.js'
 import glb from '../asset/model/role03_all.glb'
 import { AnimationGroup } from './animation'
 import { mirrorOperations } from './mirrorOperations'
@@ -32,8 +39,7 @@ const currentCameraLookAt = JSON.parse(
 const currentCameraPosition = JSON.parse(
   JSON.stringify(mirrorOperations[mirrorOperationsIndex].position),
 )
-window.currentCameraPosition = currentCameraPosition
-window.currentCameraLookAt = currentCameraLookAt
+let bloomComposer, finalComposer
 
 let mixer = null
 let clock = null
@@ -68,11 +74,13 @@ function initSmoothScrolling() {
 function initScene() {
   scene = new THREE.Scene()
   scene.background = new THREE.Color(bg)
+  // scene.backgroundBlurriness = 0.5
   scene.fog = new THREE.Fog(bg, 60, 100) // 雾化效果
 }
 
 /** 创建相机 */
 function initCamera() {
+  // 场景
   camera = new THREE.PerspectiveCamera(
     45,
     window.innerWidth / window.innerHeight,
@@ -99,6 +107,7 @@ function initRenderer() {
     antialias: true, // 抗齿距
   })
   renderer.shadowMap.enabled = true // 投射阴影
+  renderer.autoClear = false
   renderer.setPixelRatio(window.devicePixelRatio)
 }
 function initControls() {
@@ -111,7 +120,9 @@ function initControls() {
   controls.autoRotate = false // Toggle this if you'd like the chair to automatically rotate
   controls.autoRotateSpeed = 0.2 // 30
 }
-
+function random(min, max) {
+  return Number.parseInt(Math.random() * (max - min) + min)
+}
 /** 创建网格模型对象 */
 function initMesh() {
   const loader = new GLTFLoader()
@@ -132,7 +143,7 @@ function initMesh() {
 
       model.scale.set(10, 10, 10)
       model.position.y = dimian
-
+      // model.layers.set(1)
       scene.add(model)
 
       // 创建模型动作混合器
@@ -149,19 +160,6 @@ function initMesh() {
         // clip.setLoop(THREE.LoopOnce)
         return clip
       })
-
-      // window.possibleAnims = possibleAnims
-      // const prev = 3
-      // const next = 0
-      // possibleAnims[prev].play()
-      // const t = 2
-      // const value = possibleAnims[prev].getClip().duration
-      // setTimeout(
-      //   () => {
-      //     possibleAnims[next].play().crossFadeFrom(possibleAnims[prev], t)
-      //   },
-      //   (value - t) * 1000,
-      // )
       /**
        * 初始为走路
        * 按键以后甩剑并进入站立idle
@@ -186,10 +184,35 @@ function initMesh() {
     },
   )
 }
+function initGroundParticle() {
+  const geometry = new THREE.IcosahedronGeometry(0.15, 15)
+  const mtl = new THREE.MeshLambertMaterial({ color: 0xf5bc6a })
+  // const mtl = new THREE.MeshBasicMaterial({ color: 0xf5bc6a })
+  const intensity = 100
+  for (let i = 0; i < 15; i++) {
+    const particle = new THREE.PointLight(bg, intensity)
+    const mesh = new THREE.Mesh(geometry, mtl)
+    particle.add(mesh)
+    particles.push({
+      particle,
+      // particle: mesh,
+      x: Math.random(),
+      y: Math.random(),
+      z: Math.random(),
+    })
+    scene.add(particle)
+  }
+  window.particles = particles
+}
+function setLayoutEnable(item) {
+  item.layers.enable(0)
+  item.layers.enable(1)
+}
 /** 创建光源 */
 function initLight() {
   const hemiLight = new THREE.HemisphereLight(0xffffff, 0xffffff, 1)
   hemiLight.position.set(0, 50, 0)
+  // setLayoutEnable(hemiLight)
   scene.add(hemiLight)
   // 阴影
   const d = 8.25
@@ -206,11 +229,9 @@ function initLight() {
   scene.add(dirLightShadow)
   // 左光
   const dirLightLeft = new THREE.DirectionalLight(0x50b2df, 3)
-  window.dirLightLeft = dirLightLeft
   dirLightLeft.position.set(-7, 0, 3)
   const targetLeftObject = new THREE.Object3D()
   targetLeftObject.position.set(0, 0, -3)
-  window.targetLeftObject = targetLeftObject
   dirLightLeft.target = targetLeftObject
   if (isHelp) {
     const helperLeft = new THREE.DirectionalLightHelper(dirLightLeft, 1)
@@ -220,70 +241,44 @@ function initLight() {
   scene.add(dirLightLeft)
   // 右黄光
   const dirRightFront = new THREE.DirectionalLight(0xf5b768, 10)
-  window.dirRightFront = dirRightFront
   dirRightFront.position.set(7, 5, 0)
   const targetRightObject = new THREE.Object3D()
   targetRightObject.position.set(0, 5, 2)
-  window.targetRightObject = targetRightObject
-  scene.add(targetRightObject)
 
   dirRightFront.target = targetRightObject
   if (isHelp) {
     const helperRight = new THREE.DirectionalLightHelper(dirRightFront, 1)
     scene.add(helperRight)
   }
+  scene.add(targetRightObject)
   scene.add(dirRightFront)
   // 正面光
   const dirLightFront = new THREE.DirectionalLight(0xeebe8f, 5)
-  window.dirLightFront = dirLightFront
   dirLightFront.position.set(5, 7, 5)
   const targetFrontObject = new THREE.Object3D()
   targetFrontObject.position.set(2, 7, 0)
-  window.targetFrontObject = targetFrontObject
-  scene.add(targetFrontObject)
 
   dirLightFront.target = targetFrontObject
   if (isHelp) {
     const helperFront = new THREE.DirectionalLightHelper(dirLightFront, 1)
     scene.add(helperFront)
   }
+  scene.add(targetFrontObject)
   scene.add(dirLightFront)
   // 背面光
   const dirLightVerso = new THREE.DirectionalLight(0x50b2df, 1)
-  window.dirLightVerso = dirLightVerso
   dirLightVerso.position.set(0, 4, -8)
   const targetVersoObject = new THREE.Object3D()
   targetVersoObject.position.set(6, 4, 0)
-  window.targetVersoObject = targetVersoObject
-  scene.add(targetVersoObject)
 
   dirLightVerso.target = targetVersoObject
   if (isHelp) {
     const helperVerson = new THREE.DirectionalLightHelper(dirLightVerso, 1)
     scene.add(helperVerson)
   }
+  scene.add(targetVersoObject)
   scene.add(dirLightVerso)
 }
-
-function initGroundParticle() {
-  const sphere = new THREE.SphereGeometry(0.2, 8, 4)
-  const intensity = 100
-  const bg = 0xf5bc6a
-  for (let i = 0; i < 10; i++) {
-    const particle = new THREE.PointLight(bg, intensity)
-    particle.add(
-      new THREE.Mesh(sphere, new THREE.MeshBasicMaterial({ color: bg })),
-    )
-    particles.push({
-      particle,
-      x: Math.random(),
-      y: Math.random(),
-      z: Math.random(),
-    })
-    scene.add(particle)
-  }
-}
-
 /** 创建地面 */
 function initFloor() {
   const floorGeometry = new THREE.PlaneGeometry(5000, 5000, 1, 1)
@@ -340,12 +335,108 @@ function initStats() {
   stats = new Stats()
   statsRef.value.appendChild(stats.dom)
 }
+function initBloomPass() {
+  const params = {
+    threshold: 0.15,
+    strength: 0.6,
+    radius: 0.27,
+    exposure: 1,
+  }
+  bloomComposer = new EffectComposer(renderer)
 
+  const renderScene = new RenderPass(scene, camera)
+  // 光晕
+  const bloomPass = new UnrealBloomPass(
+    new THREE.Vector2(window.innerWidth, window.innerHeight),
+    1,
+    0.4,
+    0.85,
+  )
+  bloomPass.threshold = params.threshold
+  bloomPass.strength = params.strength
+  bloomPass.radius = params.radius
+  // bloomPass.exposure = params.exposure
+  bloomComposer.addPass(renderScene)
+  bloomComposer.addPass(bloomPass)
+  window.bloomPass = bloomPass
+  // const effectFXAA = new ShaderPass(FXAAShader)
+  // effectFXAA.uniforms.resolution.value.set(
+  //   1 / window.innerWidth,
+  //   1 / window.innerHeight,
+  // )
+  // const mixPass = new ShaderPass(
+  //   new THREE.ShaderMaterial({
+  //     uniforms: {
+  //       baseTexture: { value: null },
+  //       bloomTexture: { value: bloomComposer.renderTarget2.texture },
+  //     },
+  //     vertexShader: `varying vec2 vUv;
+
+  // void main() {
+
+  //   vUv = uv;
+
+  //   gl_Position = projectionMatrix * modelViewMatrix * vec4( position, 1.0 );
+
+  // }`,
+  //     fragmentShader: `uniform sampler2D baseTexture;
+  // 			uniform sampler2D bloomTexture;
+
+  // 			varying vec2 vUv;
+
+  // 			void main() {
+
+  // 				gl_FragColor = ( texture2D( baseTexture, vUv ) + vec4( 1.0 ) * texture2D( bloomTexture, vUv ) );
+
+  // 			}`,
+  //     defines: {},
+  //   }),
+  //   'baseTexture',
+  // )
+  // mixPass.needsSwap = true
+  // bloomComposer.addPass(mixPass)
+
+  //   const outputPass = new OutputPass()
+
+  //   finalComposer = new EffectComposer(renderer)
+  //   finalComposer.addPass(renderScene)
+  //   finalComposer.addPass(mixPass)
+  //   finalComposer.addPass(outputPass)
+  const gui = new GUI()
+
+  const bloomFolder = gui.addFolder('bloom')
+
+  bloomFolder.add(params, 'threshold', 0.0, 1.0).onChange(function (value) {
+    bloomPass.threshold = Number(value)
+    // update()
+  })
+
+  bloomFolder.add(params, 'strength', 0.0, 3).onChange(function (value) {
+    bloomPass.strength = Number(value)
+    // update()
+  })
+
+  bloomFolder
+    .add(params, 'radius', 0.0, 1.0)
+    .step(0.01)
+    .onChange(function (value) {
+      bloomPass.radius = Number(value)
+      // update()
+    })
+
+  const toneMappingFolder = gui.addFolder('tone mapping')
+
+  toneMappingFolder.add(params, 'exposure', 0.1, 2).onChange(function (value) {
+    renderer.toneMappingExposure = value ** 4.0
+    // update()
+  })
+}
 /** 初始化 */
 function init() {
   initScene()
   initCamera()
   initRenderer()
+  // initBloomPass()
 
   clock = new THREE.Clock()
   initFloor()
@@ -398,12 +489,19 @@ function update() {
   updateBubble()
   stats.update()
 
+  // renderer.clear()
+  // camera.layers.set(1)
+  // bloomComposer.render()
+
+  // renderer.clearDepth() // 清除深度缓存
+
+  // camera.layers.set(0)
   renderer.render(scene, camera)
   requestAnimationFrame(update)
 }
 
 function updateGroundParticle() {
-  const time = Date.now() * 0.0005
+  const time = Date.now() * 0.0007
   particles.forEach(item => {
     const x = Math.sin(time * item.x) * 30
     const y = Math.cos(time * item.y) * 40
@@ -457,8 +555,8 @@ onMounted(() => {
 })
 onBeforeUnmount(() => {
   cancelAnimationFrame(update)
-  lenis.off('scroll', handleLenisScrroll)
   scene.remove(...scene.children)
+  lenis.off('scroll', handleLenisScrroll)
 })
 </script>
 
